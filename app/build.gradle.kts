@@ -9,6 +9,11 @@ plugins {
 // to also build for x86_64 emulators. Real TVs and streaming sticks are ARM.
 val includeX86 = providers.gradleProperty("wishy.includeX86").orNull == "true"
 
+// The uncompressed option (wishy.uncompressedLibs=true) stores native libraries
+// uncompressed in the APK so they can be page-aligned and memory-mapped directly
+// by Android 6.0+. This is experimental for GeckoView.
+val uncompressedLibs = providers.gradleProperty("wishy.uncompressedLibs").orNull == "true"
+
 android {
     namespace = "org.wishy.browser"
     compileSdk = 37
@@ -18,15 +23,36 @@ android {
         applicationId = "org.wishy.browser"
         minSdk = 26      // GeckoView 144+ requires Android 8.0
         targetSdk = 36
-        versionCode = 4
-        versionName = "2.0.0"
+        versionCode = 5
+        versionName = "2.1.0"
+    }
 
-        // One universal APK: 32-bit ARM (most sticks and cheap boxes) and
-        // 64-bit ARM (Shield, Google TV, newer TVs). Mozilla no longer ships
-        // 32-bit x86.
-        ndk {
-            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
-            if (includeX86) abiFilters.add("x86_64")
+    // Three flavor options: arm32, arm64 and universal. Universal includes both
+    // and is the easiest to sideload, but flavor-specific APKs are half the
+    // size on disk. x86_64 is only for emulators and added to universal.
+    flavorDimensions += "abi"
+    productFlavors {
+        create("arm32") {
+            dimension = "abi"
+            ndk {
+                abiFilters.clear()
+                abiFilters.add("armeabi-v7a")
+            }
+        }
+        create("arm64") {
+            dimension = "abi"
+            ndk {
+                abiFilters.clear()
+                abiFilters.add("arm64-v8a")
+            }
+        }
+        create("universal") {
+            dimension = "abi"
+            ndk {
+                abiFilters.clear()
+                abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
+                if (includeX86) abiFilters.add("x86_64")
+            }
         }
     }
 
@@ -67,8 +93,8 @@ android {
         jniLibs {
             // GeckoView's libxul.so is ~50 MB per CPU type. Stored compressed
             // the APK file is roughly half the size, which matters when
-            // sideloading to a TV.
-            useLegacyPackaging = true
+            // sideloading to a TV. Setting wishy.uncompressedLibs=true overrides this.
+            useLegacyPackaging = !uncompressedLibs
         }
         resources {
             excludes += listOf(
