@@ -672,15 +672,15 @@ class MainActivity : AppCompatActivity() {
         updateCursorVisibility()
     }
 
-    /** Items float up one after another. */
+    /** Items float up one after another (optimized for weak TV hardware). */
     private fun staggerIn(views: List<View>) {
         val d = resources.displayMetrics.density
         views.forEachIndexed { i, v ->
             v.alpha = 0f
-            v.translationY = 28f * d
+            v.translationY = 16f * d
             v.animate().alpha(1f).translationY(0f)
-                .setStartDelay(90L * i).setDuration(520L)
-                .setInterpolator(DecelerateInterpolator(1.6f))
+                .setStartDelay(40L * i).setDuration(250L)
+                .setInterpolator(DecelerateInterpolator())
                 .withEndAction { v.animate().setStartDelay(0L) }
                 .start()
         }

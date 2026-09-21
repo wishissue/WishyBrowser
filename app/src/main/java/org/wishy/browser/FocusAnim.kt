@@ -36,8 +36,8 @@ object FocusAnim {
         v.animate().cancel()
         v.animate()
             .scaleX(to).scaleY(to)
-            .setDuration(if (focused) 260L else 160L)
-            .setInterpolator(if (focused) OvershootInterpolator(2.4f) else DecelerateInterpolator())
+            .setDuration(if (focused) 150L else 100L)
+            .setInterpolator(if (focused) OvershootInterpolator(1.5f) else DecelerateInterpolator())
             .start()
     }
 }
