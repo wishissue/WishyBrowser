@@ -78,6 +78,7 @@ class BrowserApplication : Application() {
         }
 
         applyPrivacyPrefs()
+        applyMemoryPrefs()
     }
 
     /**
@@ -113,6 +114,23 @@ class BrowserApplication : Application() {
             } catch (e: Exception) {
                 Log.w(TAG, "Could not set $pref", e)
             }
+        }
+    }
+
+    /**
+     * Memory tuning for weak TV hardware (1-2 GB RAM). These prefs reduce the
+     * memory footprint by shrinking caches and stopping background processes.
+     */
+    private fun applyMemoryPrefs() {
+        try {
+            // One history viewer: Back-Forward Cache (bfcache) kept to 1 page.
+            GeckoPreferenceController.setGeckoPref("browser.sessionhistory.max_total_viewers", 1, GeckoPreferenceController.PREF_BRANCH_USER)
+            // No spare process: Gecko only launches a content process when navigation starts.
+            GeckoPreferenceController.setGeckoPref("dom.ipc.processPrelaunch.enabled", false, GeckoPreferenceController.PREF_BRANCH_USER)
+            // Small page cache: Limit memory cache to 4 MB.
+            GeckoPreferenceController.setGeckoPref("browser.cache.memory.capacity", 4096, GeckoPreferenceController.PREF_BRANCH_USER)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not apply memory preferences", e)
         }
     }
 
