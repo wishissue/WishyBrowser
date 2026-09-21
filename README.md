@@ -17,6 +17,8 @@
   <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="License">
 </p>
 
+> **Heads up:** this is a small personal project, tested on an emulator and a phone, with real-TV testing still growing. Some things may not work on your TV. Please read [Known issues and limits](#known-issues-and-limits) and [tell me](#contact-and-bug-reports) if you hit a problem.
+
 ---
 
 ## Screenshots
@@ -55,7 +57,7 @@ Most TV browsers are either bloated or track you. Wishy does one thing: gives yo
 | **No telemetry** | No Glean, no crash reporter, no analytics SDK |
 | **Global Privacy Control** | Every site is told not to sell or share your visit |
 | **Clean links** | Tracking parameters (`utm_*`, `fbclid` and similar) are stripped from links |
-| **Nothing phones home** | Telemetry, studies, push messaging, captive-portal checks, notifications and location are switched off |
+| **Nothing else phones home** | Telemetry, studies, push messaging, captive-portal checks, notifications and location are switched off. See [Privacy: what still connects out](#privacy-what-still-connects-out) for the two things that still do |
 | **No proprietary code** | Google Play Services (normally pulled in by GeckoView for passkeys) is left out. The APK contains only open-source components |
 | **No accounts** | No sign-in and no Firefox Account or Sync code |
 
@@ -177,6 +179,60 @@ Browsing history, cookies and form data are **never** written to disk.
 - **Backups:** `allowBackup` is off, so bookmarks do not survive an uninstall.
 - **Updates:** there is no in-app auto-update. GeckoView does not update independently of your app releases, so rebuild against a newer GeckoView regularly for security fixes.
 - **Signing:** builds are signed with the local debug key so they install directly. Use your own keystore if you publish through a store.
+
+---
+
+## Known issues and limits
+
+Being upfront about what can go wrong:
+
+**Devices**
+- **Android 8.0 (API 26) or newer only.** Older Fire TV sticks (Fire OS 5 and 6) and Android TV boxes on Android 7 or below cannot run the current engine.
+- **Big install.** The APK is about 157 MB and needs roughly 300 MB of free space once installed. Very cheap TV sticks with little storage may fail to install it.
+- **Needs memory.** GeckoView is a full Firefox engine. On a stick with about 1 GB of RAM it can be slow, reload pages, or be closed by the system.
+- **Only tested so far** on an Android TV emulator and an Android phone. Different TV brands (Fire TV, Xiaomi, TCL, Sony, generic boxes) may behave differently with the remote, Back button, fullscreen video or the pointer.
+- **Phones:** it installs and runs, but the layout is built for a TV and is locked to landscape. It is not a phone browser.
+
+**Features that are off or missing on purpose**
+- **No passkeys or security keys.** They depend on Google Play Services (proprietary), which this build leaves out. Password logins work; sites that require a passkey will not.
+- **No notifications, push messages or location.** These are switched off.
+- **Everything is private mode.** Nothing is remembered, so sites will not keep you logged in after you close the app.
+- **No tabs, history list, downloads manager, extensions or sync.**
+- **No automatic updates.** Browsers need security fixes often. The engine only updates when the app is rebuilt against a newer GeckoView, so check for new releases.
+
+**Things that may go wrong**
+- Some sites detect an unusual browser and ask for extra checks or refuse to load. Strict tracking protection and fingerprint resistance can also break a few sites (logins, payments, embedded videos).
+- Streaming sites that need DRM (Netflix, Disney+ and similar) may not play. YouTube and most other video sites are fine.
+- Pointer mode is a workaround for mouse-only pages. It can be fiddly on pages with lots of small buttons.
+- If you install a build signed with a different key (for example a GitHub Actions build over a release APK), Android will say the app conflicts. Uninstall the old one first; saved bookmarks will be lost.
+
+---
+
+## Privacy: what still connects out
+
+Wishy sends no analytics, accounts or browsing history anywhere. Two engine features still make network requests, and you should know about them:
+
+1. **Safe Browsing (Google).** GeckoView checks pages against Google's phishing and malware lists. It downloads the lists and sends short hash prefixes of sites that match, not full addresses. This protects you from bad sites. It can be turned off in `BrowserApplication.kt` with `.safeBrowsing(ContentBlocking.SafeBrowsing.NONE)`, at the cost of no phishing or malware warnings.
+2. **Tracker lists (Mozilla).** The tracking-protection lists are updated from Mozilla's servers.
+
+And of course the sites you visit, and the search engine you use, see your IP address like any other website. Wishy does not hide your IP; use a VPN or router-level privacy for that.
+
+---
+
+## Contact and bug reports
+
+Something not working on your TV? I want to hear about it.
+
+- **Report a bug or ask a question:** open an issue at [github.com/wishissue/WishyBrowser/issues](https://github.com/wishissue/WishyBrowser/issues)
+- **Contact me directly:** [github.com/wishissue](https://github.com/wishissue)
+
+A good bug report includes:
+- your TV or box model and Android version,
+- what you did and what happened instead,
+- a screenshot if possible,
+- the log, if you can get it: `adb logcat -d | grep -i -E "wishy|gecko|fatal"`
+
+Ideas and pull requests are welcome too. This is a spare-time project, so replies may take a while.
 
 ---
 
