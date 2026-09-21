@@ -98,7 +98,7 @@ Most TV browsers are either bloated or track you. Wishy does one thing: gives yo
 
 ### Easiest: let GitHub build it for you
 
-Push the project to GitHub. The included workflow (`.github/workflows/build.yml`) builds the APK on every push. Open the **Actions** tab, pick the latest run and download **WishyBrowser-apk**. Push a tag such as `v2.0.0` and the APK is also attached to a GitHub Release.
+Push the project to GitHub. The included workflow (`.github/workflows/build.yml`) builds the APK on every push. Open the **Actions** tab, pick the latest run and download **WishyBrowser-apk**. Push a tag such as `v2.1.0` and the APK is also attached to a GitHub Release.
 
 ### Build it yourself (one click)
 
@@ -121,7 +121,12 @@ Or copy the APK to a USB stick, or use the Downloader app, and open it on the TV
 
 ### What the build gives you
 
-- **One universal APK** with 32-bit and 64-bit ARM, which covers essentially every Android TV, Google TV and Fire TV device from Android 8.0 up. Native libraries are stored compressed to roughly halve the file size.
+- **Three Product Flavors (`arm32`, `arm64`, `universal`):**
+  - **`arm32`**: Targeted for older/cheaper sticks and boxes (e.g., Fire TV Stick Lite). APK size is compressed down to ~86 MB.
+  - **`arm64`**: For high-end TVs and streaming devices (e.g., Nvidia Shield, newer Google TVs). APK size is compressed down to ~89 MB.
+  - **`universal`**: Contains both ARM architectures, offering easiest sideloading compatibility (~157 MB).
+- **Experimental Uncompressed Packaging Option:** Passing `-Pwishy.uncompressedLibs=true` stores native libraries page-aligned and uncompressed inside the APK. This allows the Android system to memory-map them directly rather than extracting them at installation, which saves runtime memory but increases the APK file size (~148 MB for arm32, ~185 MB for arm64).
+- **Memory Optimization Tuning:** Built-in engine optimizations restrict the back-forward cache to a single page (`browser.sessionhistory.max_total_viewers = 1`), reduce the memory cache to a low 4 MB limit (`browser.cache.memory.capacity = 4096`), and disable prelaunch background helper content processes (`dom.ipc.processPrelaunch.enabled = false`) to stay resilient on resource-constrained 1-2 GB RAM TVs.
 - To run on an **x86_64 emulator**, add `wishy.includeX86=true` to `gradle.properties` and build again.
 - If you change the GeckoView version, pick one from [maven.mozilla.org](https://maven.mozilla.org/maven2/org/mozilla/geckoview/geckoview/) and check the code still compiles; GeckoView's API changes between major versions.
 
