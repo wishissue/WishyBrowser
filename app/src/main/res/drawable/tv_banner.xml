@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Red background matching the new logo style -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#E31824" />
+        </shape>
+    </item>
+    <!-- Centered cat logo -->
+    <item
+        android:gravity="center"
+        android:top="12dp"
+        android:bottom="12dp"
+        android:left="12dp"
+        android:right="12dp">
+        <bitmap
+            android:src="@drawable/ic_cat_logo"
+            android:gravity="center"
+            android:mipMap="true" />
+    </item>
+</layer-list>

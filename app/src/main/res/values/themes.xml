@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.WishyBrowser" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+
+        <item name="colorPrimary">@color/md_primary</item>
+        <item name="colorOnPrimary">@color/md_on_primary</item>
+        <item name="colorSecondary">@color/md_secondary</item>
+        <item name="colorError">@color/md_error</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="android:textColorPrimary">@color/on_surface</item>
+        <item name="android:textColorHint">@color/on_surface_muted</item>
+
+        <!-- Poppins everywhere (regular/medium/semibold/bold) -->
+        <item name="android:fontFamily">@font/poppins</item>
+        <item name="fontFamily">@font/poppins</item>
+
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Wishy.Dialog</item>
+    </style>
+
+    <style name="ShapeAppearance.Wishy.Round" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">18dp</item>
+    </style>
+
+    <style name="Animation.Wishy.Dialog" parent="">
+        <item name="android:windowEnterAnimation">@anim/dialog_enter</item>
+        <item name="android:windowExitAnimation">@anim/dialog_exit</item>
+    </style>
+
+    <style name="ThemeOverlay.Wishy.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">#F0181530</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Wishy.Dialog</item>
+        <item name="android:windowAnimationStyle">@style/Animation.Wishy.Dialog</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Wishy.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.Wishy.DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.Wishy.DialogButton</item>
+    </style>
+
+    <style name="ShapeAppearance.Wishy.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">28dp</item>
+    </style>
+
+    <style name="Widget.Wishy.DialogButton" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/neon_cyan</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <!-- Rail / list icon button: soft glass tint + white ring when focused -->
+    <style name="Widget.Wishy.IconButton" parent="Widget.Material3.Button.IconButton">
+        <item name="android:layout_width">52dp</item>
+        <item name="android:layout_height">52dp</item>
+        <item name="android:insetLeft">0dp</item>
+        <item name="android:insetRight">0dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="iconGravity">textStart</item>
+        <item name="iconPadding">0dp</item>
+        <item name="iconSize">26dp</item>
+        <item name="iconTint">@color/icon_default</item>
+        <item name="backgroundTint">@color/bg_icon_tint</item>
+        <item name="cornerRadius">18dp</item>
+        <item name="strokeWidth">2dp</item>
+        <item name="strokeColor">@color/focus_stroke</item>
+    </style>
+</resources>

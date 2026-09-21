@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Retro striped sunset, half circle -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp" android:height="120dp"
+    android:viewportWidth="240" android:viewportHeight="120">
+    <group>
+        <clip-path android:pathData="M10,120 A110,110 0 0 1 230,120 Z" />
+        <path android:fillColor="#FFD84D" android:pathData="M0,6 h240 v30 h-240 z" />
+        <path android:fillColor="#FFB347" android:pathData="M0,44 h240 v24 h-240 z" />
+        <path android:fillColor="#FF8A5C" android:pathData="M0,76 h240 v18 h-240 z" />
+        <path android:fillColor="#FF5CA8" android:pathData="M0,100 h240 v12 h-240 z" />
+        <path android:fillColor="#C94BD6" android:pathData="M0,116 h240 v4 h-240 z" />
+    </group>
+</vector>

@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <!-- Zen-style sidebar -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/rail"
+            android:layout_width="76dp"
+            android:layout_height="match_parent"
+            android:layout_margin="12dp"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="28dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/glass_border"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="10dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/backButton"
+                    style="@style/Widget.Wishy.IconButton"
+                    android:layout_marginVertical="3dp"
+                    android:contentDescription="@string/menu_back"
+                    app:icon="@drawable/ic_back_24dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/homeButton"
+                    style="@style/Widget.Wishy.IconButton"
+                    android:layout_marginVertical="3dp"
+                    android:contentDescription="@string/menu_home"
+                    app:icon="@drawable/ic_home_24dp" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bookmarkButton"
+                    style="@style/Widget.Wishy.IconButton"
+                    android:layout_marginVertical="3dp"
+                    android:contentDescription="@string/add_bookmark"
+                    app:icon="@drawable/ic_star_24dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bookmarksListButton"
+                    style="@style/Widget.Wishy.IconButton"
+                    android:layout_marginVertical="3dp"
+                    android:contentDescription="@string/bookmarks"
+                    app:icon="@drawable/ic_bookmarks_24dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/pointerToggleButton"
+                    style="@style/Widget.Wishy.IconButton"
+                    android:layout_marginVertical="3dp"
+                    android:contentDescription="@string/toggle_pointer_mode"
+                    app:icon="@drawable/ic_pointer_24dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/menuButton"
+                    style="@style/Widget.Wishy.IconButton"
+                    android:layout_marginVertical="3dp"
+                    android:contentDescription="@string/menu"
+                    app:icon="@drawable/ic_more_24dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Address bar: only while browsing (the start screen has its own, centered) -->
+            <LinearLayout
+                android:id="@+id/topBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingBottom="10dp"
+                android:visibility="gone">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/urlBarCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/surface"
+                    app:cardCornerRadius="28dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/glass_border"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="20dp"
+                        android:paddingEnd="8dp">
+
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_search_24dp"
+                            app:tint="@color/accent" />
+
+                        <EditText
+                            android:id="@+id/urlEditText"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="14dp"
+                            android:layout_weight="1"
+                            android:background="@android:color/transparent"
+                            android:hint="@string/url_bar_hint"
+                            android:imeOptions="actionGo"
+                            android:importantForAutofill="no"
+                            android:inputType="textUri"
+                            android:maxLines="1"
+                            android:nextFocusDown="@id/geckoView"
+                            android:selectAllOnFocus="true"
+                            android:singleLine="true"
+                            android:textColor="@color/on_surface"
+                            android:textColorHint="@color/on_surface_muted"
+                            android:textSize="20sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/goButton"
+                            style="@style/Widget.Material3.Button.IconButton.Filled"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:contentDescription="@string/go"
+                            android:insetLeft="0dp"
+                            android:insetTop="0dp"
+                            android:insetRight="0dp"
+                            android:insetBottom="0dp"
+                            android:nextFocusDown="@id/geckoView"
+                            app:backgroundTint="@color/accent"
+                            app:cornerRadius="22dp"
+                            app:icon="@drawable/ic_go_24dp"
+                            app:iconGravity="textStart"
+                            app:iconPadding="0dp"
+                            app:iconTint="@color/md_on_primary"
+                            app:strokeColor="@color/focus_stroke"
+                            app:strokeWidth="2dp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progressBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="24dp"
+                    android:layout_marginTop="6dp"
+                    android:max="100"
+                    android:visibility="invisible"
+                    app:indicatorColor="@color/accent"
+                    app:trackColor="@color/glass_border"
+                    app:trackCornerRadius="2dp"
+                    app:trackThickness="3dp" />
+            </LinearLayout>
+
+            <!-- The floating page: GeckoView + start screen, corners rounded by masks -->
+            <FrameLayout
+                android:id="@+id/stage"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <org.mozilla.geckoview.GeckoView
+                    android:id="@+id/geckoView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <FrameLayout
+                    android:id="@+id/startPage"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_start">
+
+                    <ImageView
+                        android:layout_width="380dp"
+                        android:layout_height="190dp"
+                        android:layout_gravity="bottom|center_horizontal"
+                        android:alpha="0.5"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/deco_sun" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:gravity="center_horizontal"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/clockBlock"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_horizontal"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/greetingText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/accent"
+                                android:textSize="20sp"
+                                android:textStyle="bold" />
+
+                            <TextClock
+                                android:id="@+id/clockText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:format12Hour="h:mm"
+                                android:format24Hour="HH:mm"
+                                android:includeFontPadding="false"
+                                android:textColor="@color/on_surface"
+                                android:textSize="84sp"
+                                android:textStyle="bold" />
+
+                            <TextClock
+                                android:id="@+id/dateText"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:format12Hour="EEEE, d MMMM"
+                                android:format24Hour="EEEE, d MMMM"
+                                android:textColor="@color/on_surface_muted"
+                                android:textSize="20sp" />
+                        </LinearLayout>
+
+                        <com.google.android.material.card.MaterialCardView
+                            android:id="@+id/startSearchCard"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginHorizontal="120dp"
+                            android:layout_marginTop="26dp"
+                            app:cardBackgroundColor="@color/surface"
+                            app:cardCornerRadius="32dp"
+                            app:cardElevation="0dp"
+                            app:strokeColor="@color/glass_border"
+                            app:strokeWidth="1dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="68dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingStart="24dp"
+                                android:paddingEnd="10dp">
+
+                                <ImageView
+                                    android:layout_width="24dp"
+                                    android:layout_height="24dp"
+                                    android:contentDescription="@null"
+                                    android:src="@drawable/ic_search_24dp"
+                                    app:tint="@color/accent" />
+
+                                <EditText
+                                    android:id="@+id/startEditText"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="16dp"
+                                    android:layout_weight="1"
+                                    android:background="@android:color/transparent"
+                                    android:hint="@string/url_bar_hint"
+                                    android:imeOptions="actionGo"
+                                    android:importantForAutofill="no"
+                                    android:inputType="textUri"
+                                    android:maxLines="1"
+                                    android:singleLine="true"
+                                    android:textColor="@color/on_surface"
+                                    android:textColorHint="@color/on_surface_muted"
+                                    android:textSize="22sp">
+                                    <requestFocus />
+                                </EditText>
+
+                                <com.google.android.material.button.MaterialButton
+                                    android:id="@+id/startGoButton"
+                                    style="@style/Widget.Material3.Button.IconButton.Filled"
+                                    android:layout_width="48dp"
+                                    android:layout_height="48dp"
+                                    android:contentDescription="@string/go"
+                                    android:insetLeft="0dp"
+                                    android:insetTop="0dp"
+                                    android:insetRight="0dp"
+                                    android:insetBottom="0dp"
+                                    app:backgroundTint="@color/accent"
+                                    app:cornerRadius="24dp"
+                                    app:icon="@drawable/ic_go_24dp"
+                                    app:iconGravity="textStart"
+                                    app:iconPadding="0dp"
+                                    app:iconTint="@color/md_on_primary"
+                                    app:strokeColor="@color/focus_stroke"
+                                    app:strokeWidth="2dp" />
+                            </LinearLayout>
+                        </com.google.android.material.card.MaterialCardView>
+
+                        <HorizontalScrollView
+                            android:id="@+id/tilesScroll"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:clipChildren="false"
+                            android:clipToPadding="false"
+                            android:overScrollMode="never"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="14dp"
+                            android:scrollbars="none">
+
+                            <LinearLayout
+                                android:id="@+id/tilesRow"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:clipChildren="false"
+                                android:orientation="horizontal" />
+                        </HorizontalScrollView>
+                    </LinearLayout>
+                </FrameLayout>
+
+                <!-- Rounded page corners -->
+                <ImageView
+                    android:layout_width="20dp" android:layout_height="20dp"
+                    android:layout_gravity="top|start"
+                    android:contentDescription="@null" android:importantForAccessibility="no"
+                    android:src="@drawable/ic_corner_mask" />
+                <ImageView
+                    android:layout_width="20dp" android:layout_height="20dp"
+                    android:layout_gravity="top|end" android:rotation="90"
+                    android:contentDescription="@null" android:importantForAccessibility="no"
+                    android:src="@drawable/ic_corner_mask" />
+                <ImageView
+                    android:layout_width="20dp" android:layout_height="20dp"
+                    android:layout_gravity="bottom|end" android:rotation="180"
+                    android:contentDescription="@null" android:importantForAccessibility="no"
+                    android:src="@drawable/ic_corner_mask" />
+                <ImageView
+                    android:layout_width="20dp" android:layout_height="20dp"
+                    android:layout_gravity="bottom|start" android:rotation="270"
+                    android:contentDescription="@null" android:importantForAccessibility="no"
+                    android:src="@drawable/ic_corner_mask" />
+            </FrameLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Click ripple for the pointer -->
+    <View
+        android:id="@+id/cursorPulse"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:alpha="0"
+        android:background="@drawable/bg_pulse"
+        android:elevation="8dp" />
+
+    <!-- D-pad pointer overlay -->
+    <ImageView
+        android:id="@+id/dpadCursor"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:alpha="0"
+        android:contentDescription="@null"
+        android:elevation="10dp"
+        android:src="@drawable/ic_cursor_24dp"
+        android:visibility="gone" />
+
+</FrameLayout>

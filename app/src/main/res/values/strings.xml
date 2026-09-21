@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Wishy Browser</string>
+    <string name="url_bar_hint">Search or enter address</string>
+    <string name="go">Go</string>
+    <!-- Blank on purpose: no start-page branding, links, or text of any
+         kind. The address bar itself is the entire "home tab". -->
+    <string name="home_url">about:blank</string>
+    <string name="cursor_mode_hint">Press MENU or the pointer icon to toggle D-pad pointer mode</string>
+    <string name="toggle_pointer_mode">Toggle pointer mode</string>
+
+    <!-- One-time explainer shown on first launch only -->
+    <string name="onboarding_title">How Wishy Browser works</string>
+    <string name="onboarding_message">Type in the search bar to search or open a site.\n\nThe sidebar on the left has back, home, save-page ★, your saved pages, the pointer and the menu.\n\nThe pointer is ON by default: the D-pad moves it, OK clicks, and pushing it to the top or left edge jumps to the search bar or sidebar. Press MENU to switch it off for TV-optimized sites.\n\nBack goes back a page, then exits.\n\nThis is shown once and won\'t appear again.</string>
+    <string name="got_it">Got it</string>
+
+    <!-- File picker / permission prompts -->
+    <string name="choose_file">Choose file</string>
+    <string name="permission_title">%1$s is asking to</string>
+    <string name="permission_location">use your location</string>
+    <string name="permission_notifications">show notifications</string>
+    <string name="permission_camera_mic">use your camera and/or microphone</string>
+    <string name="permission_allow">Allow</string>
+    <string name="permission_deny">Deny</string>
+    <string name="menu_default_browser">Set as default browser</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmarks">Bookmarks</string>
+    <string name="bookmarks_hint">Press OK to open · move right to delete</string>
+    <string name="add_bookmark">Bookmark this page</string>
+    <string name="remove_bookmark">Remove bookmark</string>
+    <string name="delete_bookmark">Delete bookmark</string>
+    <string name="bookmark_added">Bookmarked: %1$s</string>
+    <string name="bookmark_removed">Bookmark removed</string>
+    <string name="nothing_to_bookmark">Open a page first, then bookmark it</string>
+    <string name="no_bookmarks">No bookmarks yet.\nOpen a page, then select the ★ button in the address bar.</string>
+    <string name="close">Close</string>
+
+    <!-- Menu -->
+    <string name="menu">Menu</string>
+    <string name="menu_back">Back</string>
+    <string name="menu_forward">Forward</string>
+    <string name="menu_reload">Reload</string>
+    <string name="menu_home">Go to home page</string>
+    <string name="menu_set_home">Set this page as home page</string>
+    <string name="menu_desktop_off">Desktop site: off (tap to turn on)</string>
+    <string name="menu_desktop_on">Desktop site: on (tap to turn off)</string>
+    <string name="menu_text_size">Text size: %1$d%% (tap to change)</string>
+    <string name="menu_exit">Exit browser</string>
+
+    <!-- Toasts / hints -->
+    <string name="home_set">Home page saved</string>
+    <string name="desktop_on_toast">Desktop site on</string>
+    <string name="desktop_off_toast">Mobile site on</string>
+    <string name="text_size_toast">Text size %1$d%%</string>
+    <string name="press_back_again">Press Back again to exit</string>
+    <string name="pointer_on">Pointer on — OK clicks, MENU switches it off</string>
+
+    <string name="pointer_off">Pointer off — pages get the raw D-pad keys</string>
+
+    <!-- Start screen -->
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_night">Still up?</string>
+    <string name="tile_weather">Weather</string>
+    <string name="tile_maps">Maps</string>
+    <string name="tile_amazon">Amazon</string>
+    <string name="tile_gmail">Gmail</string>
+    <string name="tile_youtube">YouTube</string>
+    <string name="tile_facebook">Facebook</string>
+    <string name="tile_saved">Saved</string>
+</resources>
