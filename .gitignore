@@ -1,6 +1,7 @@
 # Gradle files
 .gradle/
 build/
+app/build/
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -14,6 +15,7 @@ captures/
 .cxx/
 *.apk
 output.json
+.kotlin/
 
 # IntelliJ
 *.iml
@@ -31,3 +33,7 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Project specific built release artifacts and mapping outputs
+dist/
+app/release/
