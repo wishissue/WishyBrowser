@@ -39,7 +39,8 @@
 Most TV browsers are either bloated or track you. Wishy does one thing: gives you a search bar, a page, and just enough controls to be comfortable from the couch.
 
 - **Private by default.** Every session runs in private mode. Nothing is written to disk.
-- **Made for the remote.** D-pad navigation, plus a virtual mouse pointer for regular websites.
+- **Enhanced Security.** HTTPS-Only mode, DNS-over-HTTPS, and built-in **uBlock Origin**.
+- **Made for the remote.** Advanced spatial navigation for D-pad, plus a magnetic virtual mouse pointer.
 - **Small and auditable.** One Activity, one layout, no tracking SDKs.
 
 ---
@@ -51,6 +52,8 @@ Most TV browsers are either bloated or track you. Wishy does one thing: gives yo
 | Feature | Details |
 | --- | --- |
 | **Tracker and ad blocking** | Enhanced Tracking Protection set to *Strict*, plus a bundled **uBlock Origin** extension |
+| **HTTPS-Only Mode** | Upgrades all HTTP connections to HTTPS for better security |
+| **DNS-over-HTTPS** | Uses a secure DNS resolver (`dns.google`) with system fallback |
 | **Anti-fingerprinting** | Normalizes fonts, canvas, timezone and other identifying surfaces |
 | **Cookie protection** | Third-party and tracker cookies are rejected |
 | **No history** | Private-browsing mode for every session, nothing persists across launches |
@@ -67,14 +70,16 @@ Most TV browsers are either bloated or track you. Wishy does one thing: gives yo
 - **Bookmarks:** star button, remote-friendly list, duplicate-safe, stored only on your device.
 - **Menu:** back, forward, reload, home, custom home page, desktop-site toggle, and text size (100% to 200%).
 - **Fullscreen video:** the bar hides and Back exits fullscreen.
+- **Reader View:** detection of article pages with a one-tap high-contrast reader mode.
 - **Load progress line:** tells you a slow page from a dead one.
 - **New-tab links:** links that try to open a new window load in the current tab instead.
 
 ### TV-first design
 
 - Material 3 dark theme with a solid background (no feeds, wallpapers or recommendations).
+- **Overscan safety:** 5% UI inset from screen edges for reliable TV display compatibility.
 - White focus outline on every button the remote lands on.
-- Visible cursor on both light and dark pages.
+- Visible cursor on both light and dark pages with **magnetic snapping**.
 
 ---
 
@@ -124,9 +129,9 @@ Or copy the APK to a USB stick, or use the Downloader app, and open it on the TV
 ### What the build gives you
 
 - **Three Product Flavors (`arm32`, `arm64`, `universal`):**
-  - **`arm32`**: Targeted for older/cheaper sticks and boxes (e.g., Fire TV Stick Lite). APK size is compressed down to ~86 MB.
-  - **`arm64`**: For high-end TVs and streaming devices (e.g., Nvidia Shield, newer Google TVs). APK size is compressed down to ~89 MB.
-  - **`universal`**: Contains both ARM architectures, offering easiest sideloading compatibility (~157 MB).
+  - **`arm32`**: Targeted for older/cheaper sticks and boxes (e.g., Fire TV Stick Lite). APK size is ~90 MB.
+  - **`arm64`**: For high-end TVs and streaming devices (e.g., Nvidia Shield, newer Google TVs). APK size is ~93 MB.
+  - **`universal`**: Contains both ARM architectures, offering easiest sideloading compatibility (~161 MB).
 - **Experimental Uncompressed Packaging Option:** Passing `-Pwishy.uncompressedLibs=true` stores native libraries page-aligned and uncompressed inside the APK. This allows the Android system to memory-map them directly rather than extracting them at installation, which saves runtime memory but increases the APK file size (~148 MB for arm32, ~185 MB for arm64).
 - **Memory Optimization Tuning:** Built-in engine optimizations restrict the back-forward cache to a single page (`browser.sessionhistory.max_total_viewers = 1`), reduce the memory cache to a low 4 MB limit (`browser.cache.memory.capacity = 4096`), and disable prelaunch background helper content processes (`dom.ipc.processPrelaunch.enabled = false`) to stay resilient on resource-constrained 1-2 GB RAM TVs.
 - To run on an **x86_64 emulator**, add `wishy.includeX86=true` to `gradle.properties` and build again.
@@ -214,7 +219,8 @@ Wishy sends no analytics, accounts or browsing history anywhere. Three engine fe
 
 1. **Safe Browsing (Google).** GeckoView checks pages against Google's phishing and malware lists. It downloads the lists and sends short hash prefixes of sites that match, not full addresses. This protects you from bad sites. It can be turned off in `BrowserApplication.kt` with `.safeBrowsing(ContentBlocking.SafeBrowsing.NONE)`, at the cost of no phishing or malware warnings.
 2. **uBlock Origin Filter Lists.** The bundled uBlock Origin extension (v1.75.0) downloads and updates its ad and tracker filter lists from their respective maintainers' servers.
-3. **Tracker lists (Mozilla).** The tracking-protection lists are updated from Mozilla's servers.
+3. **DNS-over-HTTPS (Google).** Encrypted DNS queries are sent to `dns.google` (8.8.8.8) to prevent local network monitoring of your browsing habits.
+4. **Tracker lists (Mozilla).** The tracking-protection lists are updated from Mozilla's servers.
 
 And of course the sites you visit, and the search engine you use, see your IP address like any other website. Wishy does not hide your IP; use a VPN or router-level privacy for that.
 

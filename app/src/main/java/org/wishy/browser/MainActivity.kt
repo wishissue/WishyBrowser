@@ -383,16 +383,6 @@ class MainActivity : AppCompatActivity() {
                     session.sessionPageExtractor.getPageMetadata().accept { metadata ->
                         isReaderable = metadata?.isReaderable ?: false
                     }
-                    readAsset("scripts/spatial-nav.js")?.let {
-                        session.runtime.webExtensionController.runMessageDelegate(
-                            object : WebExtension.MessageDelegate {
-                                override fun onMessage(nativeApp: String, message: Any, sender: WebExtension.MessageSender): GeckoResult<Any>? = null
-                            }, "wishy"
-                        )
-                        // Actually GeckoView doesn't have a simple evaluateJavascript on session
-                        // It's usually done via WebExtension or PageScript.
-                        // I'll check how to inject a script in GeckoView 155.
-                    }
                 } else {
                     isReaderable = false
                 }
