@@ -63,6 +63,11 @@ class BrowserApplication : Application() {
 
         runtime = GeckoRuntime.create(this, settings)
 
+        // uBlock Origin (v1.75.0): Bundled as a static, mandatory privacy
+        // layer. There is no user interface for managing extensions.
+        runtime.webExtensionController
+            .installBuiltIn("resource://android/assets/extensions/ublock/")
+
         runtime.settings.apply {
             // Fingerprinting protection (Resist Fingerprinting / RFP)
             // requires GeckoView 130+.
@@ -145,6 +150,11 @@ class BrowserApplication : Application() {
             GeckoPreferenceController.setGeckoPref("dom.ipc.processPrelaunch.enabled", false, GeckoPreferenceController.PREF_BRANCH_USER)
             // Small page cache: Limit memory cache to 4 MB.
             GeckoPreferenceController.setGeckoPref("browser.cache.memory.capacity", 4096, GeckoPreferenceController.PREF_BRANCH_USER)
+
+            // One content process: matches the single-tab browser design.
+            GeckoPreferenceController.setGeckoPref("dom.ipc.processCount", 1, GeckoPreferenceController.PREF_BRANCH_USER)
+            // Tune heap growth for low-RAM targets.
+            GeckoPreferenceController.setGeckoPref("javascript.options.mem.gc_high_frequency_heap_growth_max", 15, GeckoPreferenceController.PREF_BRANCH_USER)
         } catch (e: Exception) {
             Log.w(TAG, "Could not apply memory preferences", e)
         }
