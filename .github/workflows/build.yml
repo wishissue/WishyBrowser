@@ -26,15 +26,22 @@ jobs:
       - name: Build universal APK
         run: ./gradlew --no-daemon assembleRelease
 
+      - name: Generate Checksums
+        run: |
+          cd dist
+          for f in *.apk; do
+            sha256sum "$f" > "$f.sha256"
+          done
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: WishyBrowser-apk
-          path: dist/*.apk
+          path: dist/*
           if-no-files-found: error
 
       - name: Attach APK to release (version tags only)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.apk
+          files: dist/*
