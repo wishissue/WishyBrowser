@@ -6,6 +6,8 @@ All notable changes to Wishy Browser will be documented in this file.
 ### Added
 - Bundled **uBlock Origin (v1.75.0)** as a mandatory privacy layer.
 - Gecko content process and memory tuning preferences for low-RAM TVs.
+- **HTTPS-Only Mode** and **DNS-over-HTTPS** for enhanced security.
+- **Reader View** support with automatic detection and menu integration.
 - Branch-based development for improvement plan phases.
 
 ### Changed
