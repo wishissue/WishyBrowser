@@ -68,6 +68,10 @@ class BrowserApplication : Application() {
         runtime.webExtensionController
             .installBuiltIn("resource://android/assets/extensions/ublock/")
 
+        // Wishy Core: Shared spatial-navigation engine and TV UI tweaks.
+        runtime.webExtensionController
+            .installBuiltIn("resource://android/assets/extensions/wishy/")
+
         runtime.settings.apply {
             // Fingerprinting protection (Resist Fingerprinting / RFP)
             // requires GeckoView 130+.

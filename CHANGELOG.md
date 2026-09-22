@@ -8,6 +8,9 @@ All notable changes to Wishy Browser will be documented in this file.
 - Gecko content process and memory tuning preferences for low-RAM TVs.
 - **HTTPS-Only Mode** and **DNS-over-HTTPS** for enhanced security.
 - **Reader View** support with automatic detection and menu integration.
+- New **Spatial Navigation Engine** (Wishy Core extension) for robust D-pad web traversal.
+- **Magnetic Cursor Snapping** to interactive elements in pointer mode.
+- Overscan safety margins (5% inset) and enlarged tap targets for TV usability.
 - Branch-based development for improvement plan phases.
 
 ### Changed

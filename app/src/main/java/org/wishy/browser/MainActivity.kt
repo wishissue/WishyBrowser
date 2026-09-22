@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
+import android.animation.ValueAnimator
 import android.provider.Settings
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -39,6 +40,8 @@ import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.ExperimentalGeckoViewApi
+import org.mozilla.geckoview.WebExtension
+import org.json.JSONObject
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.ScreenLength
 import org.wishy.browser.databinding.ActivityMainBinding
@@ -75,6 +78,59 @@ class MainActivity : AppCompatActivity() {
     private var isFullScreen = false
     private var pageScrollY = 0
     private var isReaderable = false
+
+    private var wishyCorePort: WebExtension.Port? = null
+
+    private val wishyMessageDelegate = object : WebExtension.MessageDelegate {
+        override fun onConnect(port: WebExtension.Port) {
+            wishyCorePort = port
+            port.setDelegate(object : WebExtension.PortDelegate {
+                override fun onPortMessage(message: Any, port: WebExtension.Port) {
+                    if (message is JSONObject && message.optString("type") == "find_closest_result") {
+                        val result = message.optJSONObject("result")
+                        if (result != null) {
+                            val sx = result.optDouble("x").toFloat()
+                            val sy = result.optDouble("y").toFloat()
+                            snapCursorTo(sx, sy)
+                        }
+                    }
+                }
+                override fun onDisconnect(port: WebExtension.Port) {
+                    if (wishyCorePort == port) wishyCorePort = null
+                }
+            })
+        }
+    }
+
+    private var snapAnimatorX: ValueAnimator? = null
+    private var snapAnimatorY: ValueAnimator? = null
+
+    private fun snapCursorTo(sx: Float, sy: Float) {
+        // Only snap if we are NOT currently holding keys (moving)
+        if (heldKeys.isNotEmpty()) return
+        
+        snapAnimatorX?.cancel()
+        snapAnimatorY?.cancel()
+
+        snapAnimatorX = ValueAnimator.ofFloat(cursorX, sx).apply {
+            duration = 150L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { 
+                cursorX = it.animatedValue as Float
+                positionCursorOverlay()
+            }
+            start()
+        }
+        snapAnimatorY = ValueAnimator.ofFloat(cursorY, sy).apply {
+            duration = 150L
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { 
+                cursorY = it.animatedValue as Float
+                positionCursorOverlay()
+            }
+            start()
+        }
+    }
 
     // Set when Back moved focus to the address bar because there was
     // nothing left to go back to; the next Back then exits the app.
@@ -327,6 +383,16 @@ class MainActivity : AppCompatActivity() {
                     session.sessionPageExtractor.getPageMetadata().accept { metadata ->
                         isReaderable = metadata?.isReaderable ?: false
                     }
+                    readAsset("scripts/spatial-nav.js")?.let {
+                        session.runtime.webExtensionController.runMessageDelegate(
+                            object : WebExtension.MessageDelegate {
+                                override fun onMessage(nativeApp: String, message: Any, sender: WebExtension.MessageSender): GeckoResult<Any>? = null
+                            }, "wishy"
+                        )
+                        // Actually GeckoView doesn't have a simple evaluateJavascript on session
+                        // It's usually done via WebExtension or PageScript.
+                        // I'll check how to inject a script in GeckoView 155.
+                    }
                 } else {
                     isReaderable = false
                 }
@@ -341,6 +407,12 @@ class MainActivity : AppCompatActivity() {
 
         session.promptDelegate = pageDialogDelegate()
         session.permissionDelegate = pagePermissionDelegate()
+
+        runtime.webExtensionController.list().accept { extensions ->
+            extensions?.find { it.id == "core@wishy.org" }?.let { core ->
+                core.setMessageDelegate(wishyMessageDelegate, "wishy_core")
+            }
+        }
     }
 
     // ------------------------------------------------------------------
@@ -964,6 +1036,26 @@ class MainActivity : AppCompatActivity() {
                 if (down && !chrome) scrollPageBy(-binding.geckoView.height * 0.85f)
                 return !chrome
             }
+
+            KeyEvent.KEYCODE_DPAD_UP,
+            KeyEvent.KEYCODE_DPAD_DOWN,
+            KeyEvent.KEYCODE_DPAD_LEFT,
+            KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (!cursorMode && !chrome && first) {
+                    val direction = when (event.keyCode) {
+                        KeyEvent.KEYCODE_DPAD_UP -> "Up"
+                        KeyEvent.KEYCODE_DPAD_DOWN -> "Down"
+                        KeyEvent.KEYCODE_DPAD_LEFT -> "Left"
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> "Right"
+                        else -> ""
+                    }
+                    wishyCorePort?.postMessage(JSONObject().apply {
+                        put("type", "navigate")
+                        put("direction", direction)
+                    })
+                    return true
+                }
+            }
         }
 
         // Pointer mode: hold a direction to glide, OK clicks.
@@ -1118,6 +1210,13 @@ class MainActivity : AppCompatActivity() {
         }
         cursorX = (cursorX + dx).coerceIn(0f, w)
         positionCursorOverlay()
+
+        // Check for magnetic snap
+        wishyCorePort?.postMessage(JSONObject().apply {
+            put("type", "find_closest")
+            put("x", cursorX)
+            put("y", cursorY)
+        })
     }
 
     private fun scrollPageBy(pixels: Float) {
@@ -1175,6 +1274,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun toast(message: String) =
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+
+    private fun readAsset(path: String): String? = try {
+        assets.open(path).bufferedReader().use { it.readText() }
+    } catch (e: Exception) {
+        null
+    }
 
     override fun onDestroy() {
         session.close()
