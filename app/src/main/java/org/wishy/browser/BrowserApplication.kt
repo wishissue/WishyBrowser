@@ -63,6 +63,11 @@ class BrowserApplication : Application() {
 
         runtime = GeckoRuntime.create(this, settings)
 
+        // uBlock Origin (v1.75.0): Bundled as a static, mandatory privacy
+        // layer. There is no user interface for managing extensions.
+        runtime.webExtensionController
+            .installBuiltIn("resource://android/assets/extensions/ublock/")
+
         runtime.settings.apply {
             // Fingerprinting protection (Resist Fingerprinting / RFP)
             // requires GeckoView 130+.

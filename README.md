@@ -50,7 +50,7 @@ Most TV browsers are either bloated or track you. Wishy does one thing: gives yo
 
 | Feature | Details |
 | --- | --- |
-| **Tracker and ad blocking** | Enhanced Tracking Protection set to *Strict*, always on |
+| **Tracker and ad blocking** | Enhanced Tracking Protection set to *Strict*, plus a bundled **uBlock Origin** extension |
 | **Anti-fingerprinting** | Normalizes fonts, canvas, timezone and other identifying surfaces |
 | **Cookie protection** | Third-party and tracker cookies are rejected |
 | **No history** | Private-browsing mode for every session, nothing persists across launches |
@@ -210,10 +210,11 @@ Being upfront about what can go wrong:
 
 ## Privacy: what still connects out
 
-Wishy sends no analytics, accounts or browsing history anywhere. Two engine features still make network requests, and you should know about them:
+Wishy sends no analytics, accounts or browsing history anywhere. Three engine features still make network requests, and you should know about them:
 
 1. **Safe Browsing (Google).** GeckoView checks pages against Google's phishing and malware lists. It downloads the lists and sends short hash prefixes of sites that match, not full addresses. This protects you from bad sites. It can be turned off in `BrowserApplication.kt` with `.safeBrowsing(ContentBlocking.SafeBrowsing.NONE)`, at the cost of no phishing or malware warnings.
-2. **Tracker lists (Mozilla).** The tracking-protection lists are updated from Mozilla's servers.
+2. **uBlock Origin Filter Lists.** The bundled uBlock Origin extension (v1.75.0) downloads and updates its ad and tracker filter lists from their respective maintainers' servers.
+3. **Tracker lists (Mozilla).** The tracking-protection lists are updated from Mozilla's servers.
 
 And of course the sites you visit, and the search engine you use, see your IP address like any other website. Wishy does not hide your IP; use a VPN or router-level privacy for that.
 
