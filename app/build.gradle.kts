@@ -23,8 +23,8 @@ android {
         applicationId = "org.wishy.browser"
         minSdk = 26      // GeckoView 144+ requires Android 8.0
         targetSdk = 36
-        versionCode = 5
-        versionName = "2.1.0"
+        versionCode = 6
+        versionName = "2.2.0"
     }
 
     // Three flavor options: arm32, arm64 and universal. Universal includes both
