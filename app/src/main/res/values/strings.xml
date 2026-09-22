@@ -46,6 +46,7 @@
     <string name="menu_desktop_off">Desktop site: off (tap to turn on)</string>
     <string name="menu_desktop_on">Desktop site: on (tap to turn off)</string>
     <string name="menu_text_size">Text size: %1$d%% (tap to change)</string>
+    <string name="menu_reader_view">Reader View</string>
     <string name="menu_exit">Exit browser</string>
 
     <!-- Toasts / hints -->

@@ -38,6 +38,7 @@ import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoSession
+import org.mozilla.geckoview.ExperimentalGeckoViewApi
 import org.mozilla.geckoview.GeckoSessionSettings
 import org.mozilla.geckoview.ScreenLength
 import org.wishy.browser.databinding.ActivityMainBinding
@@ -73,6 +74,7 @@ class MainActivity : AppCompatActivity() {
     private var canGoBack = false
     private var isFullScreen = false
     private var pageScrollY = 0
+    private var isReaderable = false
 
     // Set when Back moved focus to the address bar because there was
     // nothing left to go back to; the next Back then exits the app.
@@ -318,8 +320,16 @@ class MainActivity : AppCompatActivity() {
                 binding.progressBar.setProgressCompat(progress, true)
             }
 
+            @ExperimentalGeckoViewApi
             override fun onPageStop(session: GeckoSession, success: Boolean) {
                 binding.progressBar.visibility = View.INVISIBLE
+                if (success) {
+                    session.sessionPageExtractor.getPageMetadata().accept { metadata ->
+                        isReaderable = metadata?.isReaderable ?: false
+                    }
+                } else {
+                    isReaderable = false
+                }
             }
         }
 
@@ -794,7 +804,7 @@ class MainActivity : AppCompatActivity() {
     private fun showMenu() {
         val desktop = prefs.desktopMode
         val scalePercent = (prefs.textScale * 100).roundToInt()
-        val labels = arrayOf(
+        val labels = mutableListOf(
             getString(R.string.menu_back),
             getString(R.string.menu_forward),
             getString(R.string.menu_reload),
@@ -802,22 +812,30 @@ class MainActivity : AppCompatActivity() {
             getString(R.string.menu_set_home),
             getString(if (desktop) R.string.menu_desktop_on else R.string.menu_desktop_off),
             getString(R.string.menu_text_size, scalePercent),
-            getString(R.string.menu_default_browser),
-            getString(R.string.menu_exit)
+            getString(R.string.menu_default_browser)
         )
+        if (isReaderable) {
+            labels.add(getString(R.string.menu_reader_view))
+        }
+        labels.add(getString(R.string.menu_exit))
+
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.app_name)
-            .setItems(labels) { _, which ->
-                when (which) {
-                    0 -> session.goBack()
-                    1 -> session.goForward()
-                    2 -> session.reload()
-                    3 -> goHome()
-                    4 -> setHomeToCurrentPage()
-                    5 -> toggleDesktopMode()
-                    6 -> cycleTextSize()
-                    7 -> openDefaultBrowserSettings()
-                    8 -> finish()
+            .setItems(labels.toTypedArray()) { _, which ->
+                val label = labels[which]
+                when {
+                    label == getString(R.string.menu_back) -> session.goBack()
+                    label == getString(R.string.menu_forward) -> session.goForward()
+                    label == getString(R.string.menu_reload) -> session.reload()
+                    label == getString(R.string.menu_home) -> goHome()
+                    label == getString(R.string.menu_set_home) -> setHomeToCurrentPage()
+                    label == getString(if (desktop) R.string.menu_desktop_on else R.string.menu_desktop_off) -> toggleDesktopMode()
+                    label == getString(R.string.menu_text_size, scalePercent) -> cycleTextSize()
+                    label == getString(R.string.menu_default_browser) -> openDefaultBrowserSettings()
+                    label == getString(R.string.menu_reader_view) -> {
+                        currentUrl?.let { session.loadUri("about:reader?url=$it") }
+                    }
+                    label == getString(R.string.menu_exit) -> finish()
                 }
             }
             .setOnDismissListener { restoreFocus() }

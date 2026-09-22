@@ -78,7 +78,23 @@ class BrowserApplication : Application() {
         }
 
         applyPrivacyPrefs()
+        applySecurityPrefs()
         applyMemoryPrefs()
+    }
+
+    /**
+     * Engine security enhancements: HTTPS-Only Mode and DNS-over-HTTPS.
+     */
+    private fun applySecurityPrefs() {
+        try {
+            // HTTPS-Only Mode: upgrade all connections to HTTPS.
+            GeckoPreferenceController.setGeckoPref("dom.security.https_only_mode", true, GeckoPreferenceController.PREF_BRANCH_USER)
+            // DNS-over-HTTPS (DoH): use a secure resolver with system fallback.
+            GeckoPreferenceController.setGeckoPref("network.trr.mode", 2, GeckoPreferenceController.PREF_BRANCH_USER)
+            GeckoPreferenceController.setGeckoPref("network.trr.uri", "https://dns.google/dns-query", GeckoPreferenceController.PREF_BRANCH_USER)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not apply security preferences", e)
+        }
     }
 
     /**
