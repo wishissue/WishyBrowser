@@ -17,6 +17,13 @@
   <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="License">
 </p>
 
+<p align="center">
+  <sub>Wishy is free and ad-free. A tip keeps the cat fed 🐱</sub><br><br>
+  <a href="https://ko-fi.com/wishismachine"><img src="https://img.shields.io/badge/%E2%98%95-Buy%20Wishy%20a%20coffee-FFF1DC?style=for-the-badge&labelColor=FF8A65" alt="Buy Wishy a coffee on Ko-fi"></a>
+  &nbsp;
+  <a href="https://wishissue.github.io/wishy-apps/donate.html"><img src="https://img.shields.io/badge/%F0%9F%AA%99-Tip%20a%20little%20USDT-E3F6EC?style=for-the-badge&labelColor=26A17B" alt="Tip Wishy with USDT"></a>
+</p>
+
 > **Heads up:** this is a small personal project, tested on an emulator and a phone, with real-TV testing still growing. Some things may not work on your TV. Please read [Known issues and limits](#known-issues-and-limits) and [tell me](#contact-and-bug-reports) if you hit a problem.
 
 ---
@@ -60,7 +67,7 @@ Most TV browsers are either bloated or track you. Wishy does one thing: gives yo
 | **No telemetry** | No Glean, no crash reporter, no analytics SDK |
 | **Global Privacy Control** | Every site is told not to sell or share your visit |
 | **Clean links** | Tracking parameters (`utm_*`, `fbclid` and similar) are stripped from links |
-| **Nothing else phones home** | Telemetry, studies, push messaging, captive-portal checks, notifications and location are switched off. See [Privacy: what still connects out](#privacy-what-still-connects-out) for the two things that still do |
+| **Nothing else phones home** | Telemetry, studies, push messaging, captive-portal checks, notifications and location are switched off. See [Privacy: what still connects out](#privacy-what-still-connects-out) for the few things that still do |
 | **No proprietary code** | Google Play Services (normally pulled in by GeckoView for passkeys) is left out. The APK contains only open-source components |
 | **No accounts** | No sign-in and no Firefox Account or Sync code |
 
@@ -215,7 +222,7 @@ Being upfront about what can go wrong:
 
 ## Privacy: what still connects out
 
-Wishy sends no analytics, accounts or browsing history anywhere. Three engine features still make network requests, and you should know about them:
+Wishy sends no analytics, accounts or browsing history anywhere. Four engine features still make network requests, and you should know about them:
 
 1. **Safe Browsing (Google).** GeckoView checks pages against Google's phishing and malware lists. It downloads the lists and sends short hash prefixes of sites that match, not full addresses. This protects you from bad sites. It can be turned off in `BrowserApplication.kt` with `.safeBrowsing(ContentBlocking.SafeBrowsing.NONE)`, at the cost of no phishing or malware warnings.
 2. **uBlock Origin Filter Lists.** The bundled uBlock Origin extension (v1.75.0) downloads and updates its ad and tracker filter lists from their respective maintainers' servers.
@@ -223,6 +230,34 @@ Wishy sends no analytics, accounts or browsing history anywhere. Three engine fe
 4. **Tracker lists (Mozilla).** The tracking-protection lists are updated from Mozilla's servers.
 
 And of course the sites you visit, and the search engine you use, see your IP address like any other website. Wishy does not hide your IP; use a VPN or router-level privacy for that.
+
+---
+
+## Support the project
+
+Wishy Browser is free, has no ads and no tracking, and is built in spare time. If it is useful to you, a tip helps me keep it going. It is completely optional.
+
+<p align="center">
+  <a href="https://ko-fi.com/wishismachine"><img src="https://img.shields.io/badge/%E2%98%95-Buy%20Wishy%20a%20coffee-FFF1DC?style=for-the-badge&labelColor=FF8A65" alt="Buy Wishy a coffee on Ko-fi"></a>
+  &nbsp;
+  <a href="https://wishissue.github.io/wishy-apps/donate.html"><img src="https://img.shields.io/badge/%F0%9F%AA%99-Tip%20a%20little%20USDT-E3F6EC?style=for-the-badge&labelColor=26A17B" alt="Tip Wishy with USDT"></a>
+</p>
+
+The crypto page has QR codes and a copy button for each network. You can also use the addresses below directly.
+
+<details>
+<summary><b>USDT wallet addresses</b></summary>
+
+| Network | Address |
+| --- | --- |
+| **Tron (TRC20)** | `TUn7M6syjxrgfcUskaxH7UdjnpUngh3fYp` |
+| **Ethereum (ERC20)** | `0x7c11cd045bb237e579e8ce58591313aff6f87781` |
+
+Only send **USDT** on the matching network. Funds sent on a different network can't be recovered. Tron has much lower fees, and the minimum is 1 USDT.
+
+</details>
+
+Not able to donate? Starring the repo and sharing it with a friend helps just as much.
 
 ---
 
