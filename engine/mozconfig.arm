@@ -1,0 +1,3 @@
+. "$topsrcdir/mozconfig.common"
+ac_add_options --target=arm-linux-androideabi
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-arm

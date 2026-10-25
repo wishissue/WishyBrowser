@@ -1,0 +1,147 @@
+{
+ "packs": [
+  {
+   "name": "Bibata",
+   "author": "Abdulkaiz Khan (ful1e5)",
+   "license": "GPL-3.0",
+   "url": "https://github.com/ful1e5/Bibata_Cursor"
+  }
+ ],
+ "cursors": [
+  {
+   "id": "bibata_arrow_classic",
+   "name": "Bibata Arrow Classic",
+   "file": "arrow_classic.png",
+   "hotX": 0.12,
+   "hotY": 0.03,
+   "aspect": 0.812,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_arrow_ice",
+   "name": "Bibata Arrow Ice",
+   "file": "arrow_ice.png",
+   "hotX": 0.12,
+   "hotY": 0.03,
+   "aspect": 0.812,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_arrow_amber",
+   "name": "Bibata Arrow Amber",
+   "file": "arrow_amber.png",
+   "hotX": 0.12,
+   "hotY": 0.03,
+   "aspect": 0.812,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_hand_classic",
+   "name": "Bibata Hand Classic",
+   "file": "hand_classic.png",
+   "hotX": 0.448,
+   "hotY": 0.038,
+   "aspect": 0.958,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_hand_ice",
+   "name": "Bibata Hand Ice",
+   "file": "hand_ice.png",
+   "hotX": 0.448,
+   "hotY": 0.038,
+   "aspect": 0.958,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_hand_amber",
+   "name": "Bibata Hand Amber",
+   "file": "hand_amber.png",
+   "hotX": 0.448,
+   "hotY": 0.038,
+   "aspect": 0.958,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_cross_classic",
+   "name": "Bibata Crosshair Classic",
+   "file": "cross_classic.png",
+   "hotX": 0.5,
+   "hotY": 0.5,
+   "aspect": 1.0,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_cross_ice",
+   "name": "Bibata Crosshair Ice",
+   "file": "cross_ice.png",
+   "hotX": 0.5,
+   "hotY": 0.5,
+   "aspect": 1.0,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_cross_amber",
+   "name": "Bibata Crosshair Amber",
+   "file": "cross_amber.png",
+   "hotX": 0.5,
+   "hotY": 0.5,
+   "aspect": 1.0,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_target_classic",
+   "name": "Bibata Target Classic",
+   "file": "target_classic.png",
+   "hotX": 0.5,
+   "hotY": 0.5,
+   "aspect": 1.011,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_target_ice",
+   "name": "Bibata Target Ice",
+   "file": "target_ice.png",
+   "hotX": 0.5,
+   "hotY": 0.5,
+   "aspect": 1.011,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_target_amber",
+   "name": "Bibata Target Amber",
+   "file": "target_amber.png",
+   "hotX": 0.5,
+   "hotY": 0.5,
+   "aspect": 1.011,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_pencil_classic",
+   "name": "Bibata Pencil Classic",
+   "file": "pencil_classic.png",
+   "hotX": 0.073,
+   "hotY": 0.927,
+   "aspect": 1.0,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_pencil_ice",
+   "name": "Bibata Pencil Ice",
+   "file": "pencil_ice.png",
+   "hotX": 0.073,
+   "hotY": 0.927,
+   "aspect": 1.0,
+   "pack": "Bibata"
+  },
+  {
+   "id": "bibata_pencil_amber",
+   "name": "Bibata Pencil Amber",
+   "file": "pencil_amber.png",
+   "hotX": 0.073,
+   "hotY": 0.927,
+   "aspect": 1.0,
+   "pack": "Bibata"
+  }
+ ]
+}

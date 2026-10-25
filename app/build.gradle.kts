@@ -3,6 +3,7 @@ import java.io.File
 plugins {
     // Kotlin support is built into Android Gradle Plugin 9; no Kotlin plugin here.
     id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 // Add `wishy.includeX86=true` to gradle.properties (or pass -Pwishy.includeX86=true)
@@ -23,8 +24,8 @@ android {
         applicationId = "org.wishy.browser"
         minSdk = 26      // GeckoView 144+ requires Android 8.0
         targetSdk = 36
-        versionCode = 6
-        versionName = "2.2.0"
+        versionCode = 8
+        versionName = "3.1.0"
     }
 
     // Three flavor options: arm32, arm64 and universal. Universal includes both
@@ -51,7 +52,7 @@ android {
             ndk {
                 abiFilters.clear()
                 abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a"))
-                if (includeX86) abiFilters.add("x86_64")
+                if (includeX86) abiFilters.addAll(listOf("x86", "x86_64"))
             }
         }
     }
@@ -89,7 +90,7 @@ android {
     }
 
     buildFeatures {
-        viewBinding = true
+        compose = true
     }
 
     packaging {
@@ -136,9 +137,25 @@ dependencies {
     // Exact version pinned for reproducible builds. Firefox 155 release.
     implementation("org.mozilla.geckoview:geckoview:155.0.20260903215306")
 
-    implementation("androidx.appcompat:appcompat:1.7.1")
-    implementation("androidx.recyclerview:recyclerview:1.4.0")
-    implementation("com.google.android.material:material:1.14.0")
+    // Jetpack Compose + Material 3 Expressive: the exact versions Orion Store uses
+    // with this same Android Gradle Plugin and Kotlin version.
+    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
+    implementation("androidx.compose.material3:material3:1.5.0-beta01")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
+}
+
+kotlin {
+    compilerOptions {
+        optIn.addAll(
+            "androidx.compose.material3.ExperimentalMaterial3Api",
+            "androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
+            "androidx.compose.foundation.ExperimentalFoundationApi",
+            "androidx.compose.foundation.layout.ExperimentalLayoutApi",
+            "kotlinx.coroutines.ExperimentalCoroutinesApi",
+            "org.mozilla.geckoview.ExperimentalGeckoViewApi",
+        )
+    }
 }
 
 // After building an APK, put a copy in <project>/dist/ so it is easy to find.

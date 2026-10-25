@@ -3,8 +3,7 @@ package org.wishy.browser
 import android.content.Context
 
 /**
- * The few user choices the app remembers (all local, all optional):
- * a custom home page, desktop-site mode and text size.
+ * The few user choices the app remembers (all local, all optional).
  */
 class Prefs(context: Context) {
 
@@ -23,12 +22,57 @@ class Prefs(context: Context) {
         get() = sp.getFloat("text_scale", 1.0f)
         set(value) = sp.edit().putFloat("text_scale", value).apply()
 
-    /** True once the one-time "how this works" explainer has been shown. */
     var onboardingShown: Boolean
         get() = sp.getBoolean("onboarding_shown", false)
         set(value) = sp.edit().putBoolean("onboarding_shown", value).apply()
 
+    /** One of the 45 palette ids in ui/theme/Palettes.kt. */
+    var themeId: String
+        get() = sp.getString("theme_id", "wishy") ?: "wishy"
+        set(value) = sp.edit().putString("theme_id", value).apply()
+
+    /** "dark", "light", "dusk" or "oled". */
+    var themeMode: String
+        get() = sp.getString("theme_mode", "dark") ?: "dark"
+        set(value) = sp.edit().putString("theme_mode", value).apply()
+
+    var cursorId: String
+        get() = sp.getString("cursor_id", "arrow_pulse") ?: "arrow_pulse"
+        set(value) = sp.edit().putString("cursor_id", value).apply()
+
+    /** Turns every animation into an instant change (for very weak hardware). */
+    var reduceMotion: Boolean
+        get() = sp.getBoolean("reduce_motion", false)
+        set(value) = sp.edit().putBoolean("reduce_motion", value).apply()
+
+    /** Pointer size multiplier (see CURSOR_SCALES). */
+    var cursorScale: Float
+        get() = sp.getFloat("cursor_scale", 1.0f)
+        set(value) = sp.edit().putFloat("cursor_scale", value).apply()
+
+    /** Show a notification card when ads/trackers were blocked on a page. */
+    var notifyBlocked: Boolean
+        get() = sp.getBoolean("notify_blocked", true)
+        set(value) = sp.edit().putBoolean("notify_blocked", value).apply()
+
+    /** Keep page previews (thumbnails). Bookmarks keep theirs on disk; everything else stays in memory only. */
+    var thumbsEnabled: Boolean
+        get() = sp.getBoolean("thumbs_enabled", true)
+        set(value) = sp.edit().putBoolean("thumbs_enabled", value).apply()
+
+    /** Which blocker configuration was last installed. Bumped when the default filter lists change. */
+    var shieldsProfile: Int
+        get() = sp.getInt("shields_profile", 0)
+        set(value) = sp.edit().putInt("shields_profile", value).apply()
+
+    /** JSON list of the user's own cursors (see CursorLibrary). */
+    var customCursors: String
+        get() = sp.getString("custom_cursors", "[]") ?: "[]"
+        set(value) = sp.edit().putString("custom_cursors", value).apply()
+
     companion object {
         val TEXT_SCALES = floatArrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
+        val CURSOR_SCALES = floatArrayOf(0.8f, 1.0f, 1.3f, 1.7f)
+        val CURSOR_SCALE_LABELS = listOf("Small", "Medium", "Large", "Extra large")
     }
 }

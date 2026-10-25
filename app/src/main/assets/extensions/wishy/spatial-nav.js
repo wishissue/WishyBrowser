@@ -1,25 +1,56 @@
 (function() {
     const FOCUSABLE_SELECTOR = 'a, button, input, select, textarea, [tabindex="0"], [onclick], [role="button"]';
     let focusables = [];
+    let isUpdating = false;
+    let updateTimer = null;
     const port = browser.runtime.connectNative("wishy_core");
 
     function updateFocusables() {
-        focusables = Array.from(document.querySelectorAll(FOCUSABLE_SELECTOR))
-            .filter(el => {
-                const rect = el.getBoundingClientRect();
-                return rect.width > 0 && rect.height > 0 &&
-                       !el.disabled &&
-                       window.getComputedStyle(el).visibility !== 'hidden' &&
-                       window.getComputedStyle(el).display !== 'none';
-            });
+        if (isUpdating) return;
+        isUpdating = true;
+        try {
+            const all = document.querySelectorAll(FOCUSABLE_SELECTOR);
+            const count = Math.min(all.length, 300);
+            const list = [];
+            for (let i = 0; i < count; i++) {
+                const el = all[i];
+                if (el.offsetWidth > 0 || el.offsetHeight > 0) {
+                    if (!el.disabled) {
+                        list.push(el);
+                    }
+                }
+            }
+            focusables = list;
+        } catch (e) {
+            /* ignore */
+        } finally {
+            isUpdating = false;
+        }
     }
 
-    const observer = new MutationObserver(() => {
-        if (this.timer) clearTimeout(this.timer);
-        this.timer = setTimeout(updateFocusables, 500);
-    });
+    function scheduleUpdate() {
+        if (updateTimer) clearTimeout(updateTimer);
+        updateTimer = setTimeout(() => {
+            updateTimer = null;
+            if (window.requestIdleCallback) {
+                window.requestIdleCallback(updateFocusables, { timeout: 1000 });
+            } else {
+                updateFocusables();
+            }
+        }, 1200);
+    }
 
-    observer.observe(document.body, { childList: true, subtree: true });
+    if (document.body) {
+        const observer = new MutationObserver(scheduleUpdate);
+        observer.observe(document.body, { childList: true });
+    } else {
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.body) {
+                const observer = new MutationObserver(scheduleUpdate);
+                observer.observe(document.body, { childList: true });
+            }
+        });
+    }
     updateFocusables();
 
     function getCenter(rect) {
@@ -75,13 +106,18 @@
     function findClosest(x, y) {
         if (!focusables.length) updateFocusables();
         let closest = null, minDistance = Infinity;
+        const maxDist = 120;
         focusables.forEach(el => {
             const rect = el.getBoundingClientRect();
             const center = getCenter(rect);
-            const dist = Math.sqrt(Math.pow(center.x - x, 2) + Math.pow(center.y - y, 2));
-            if (dist < 100 && dist < minDistance) {
-                minDistance = dist;
-                closest = { x: center.x, y: center.y, width: rect.width, height: rect.height };
+            const dx = center.x - x;
+            const dy = center.y - y;
+            if (Math.abs(dx) < maxDist && Math.abs(dy) < maxDist) {
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < maxDist && dist < minDistance) {
+                    minDistance = dist;
+                    closest = { x: center.x, y: center.y, width: rect.width, height: rect.height };
+                }
             }
         });
         return closest;
@@ -100,15 +136,9 @@
     const style = document.createElement('style');
     style.innerHTML = `
         :focus {
-            outline: 4px solid #ffffff !important;
+            outline: 3px solid #38bdf8 !important;
             outline-offset: 2px !important;
-            box-shadow: 0 0 15px rgba(255,255,255,0.6) !important;
-        }
-        /* Enlarge small tap targets for TV usability */
-        a, button, [role="button"], input[type="submit"] {
-            min-width: 44px !important;
-            min-height: 44px !important;
-            box-sizing: border-box !important;
+            box-shadow: 0 0 12px rgba(56,189,248,0.6) !important;
         }
     `;
     document.head.appendChild(style);

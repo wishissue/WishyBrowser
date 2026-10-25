@@ -26,18 +26,11 @@ avoid pulling GPL-3.0 obligations onto this repo.
 - **Source**: https://github.com/mozilla/gecko-dev (mirror of
   mozilla-central) — https://maven.mozilla.org/maven2/org/mozilla/geckoview/
 
-## AndroidX libraries (appcompat, recyclerview)
+## AndroidX & Jetpack Compose
 - **License**: Apache License 2.0.
-- **Use**: standard Android UI/compat plumbing; used unmodified via Maven.
+- **Use**: Jetpack Compose (`compose-bom`, `activity-compose`, `lifecycle-runtime-compose`), Material 3 Expressive (`androidx.compose.material3`), and standard AndroidX utilities; used unmodified via Maven.
   GeckoView also brings in a few AndroidX support libraries and SnakeYAML
   (Apache-2.0) as its own dependencies.
-
-## com.google.android.material:material (Material Components for Android)
-- **License**: Apache License 2.0.
-- **Use**: `MaterialCardView` (the rounded URL bar) and `MaterialButton`
-  icon buttons (Go / bookmark / bookmarks / pointer / menu), the
-  load-progress indicator, and dialogs, plus the `Theme.Material3.Dark`
-  base theme.
 
 ## Poppins typeface
 - **License**: SIL Open Font License 1.1.
@@ -81,3 +74,23 @@ content" requirements, this project does **not** depend on:
 - Fenix/Focus application code or resources (icons, strings, "Firefox"
   wordmark, fox logo) — only the underlying GeckoView engine is reused,
   none of the branded application shell.
+
+## Orion Store (design reference and theme seed colours)
+- **Source**: https://github.com/RookieEnough/Orion-Store, **License**: GPL-3.0
+  (same as this project).
+- **Use**: design inspiration (Material 3 Expressive layout and motion) and
+  the 14 palette seed colours used for theme slots 2-15 in `Themes.kt`.
+  Orion's logos, badges and screenshots are NOT used.
+
+## uBlock Origin
+- **Source**: https://github.com/gorhill/uBlock, **License**: GPL-3.0.
+- **Use**: bundled unmodified as the ad and tracker blocker
+  (`assets/extensions/ublock/`).
+
+## Material Symbols, Jetpack Compose, Material Color Utilities
+- **Icons**: a subset of Google's Material Symbols Rounded (Apache-2.0), taken from the generated
+  `Symbols.kt` in Orion Store (GPL-3.0).
+- **Compose and Material 3**: Google, Apache-2.0.
+- **Colour themes**: generated with `@material/material-color-utilities` (Apache-2.0).
+- **Approach**: the build setup (Compose BOM, Material 3 1.5 Expressive, optIn flags) and the palette
+  generator were adapted from Orion Store (GPL-3.0, RookieEnough/Orion-Store).

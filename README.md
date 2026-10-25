@@ -24,6 +24,8 @@
   <a href="https://wishissue.github.io/wishy-apps/donate.html"><img src="https://img.shields.io/badge/%F0%9F%AA%99-Tip%20a%20little%20USDT-E3F6EC?style=for-the-badge&labelColor=26A17B" alt="Tip Wishy with USDT"></a>
 </p>
 
+> **New in 3.0:** the whole interface is rebuilt in Jetpack Compose with Material 3 Expressive (design inspired by [Orion Store](https://github.com/RookieEnough/Orion-Store)): a new home screen, floating toolbar, side menu, 45 colour themes (dark, light, dusk, AMOLED), 45 animated cursors, a Shields page that shows whether the ad blocker is really running, and Developer, Credits and Donate pages. See [CHANGELOG.md](CHANGELOG.md).
+
 > **Heads up:** this is a small personal project, tested on an emulator and a phone, with real-TV testing still growing. Some things may not work on your TV. Please read [Known issues and limits](#known-issues-and-limits) and [tell me](#contact-and-bug-reports) if you hit a problem.
 
 ---
@@ -48,7 +50,7 @@ Most TV browsers are either bloated or track you. Wishy does one thing: gives yo
 - **Private by default.** Every session runs in private mode. Nothing is written to disk.
 - **Enhanced Security.** HTTPS-Only mode, DNS-over-HTTPS, and built-in **uBlock Origin**.
 - **Made for the remote.** Advanced spatial navigation for D-pad, plus a magnetic virtual mouse pointer.
-- **Small and auditable.** One Activity, one layout, no tracking SDKs.
+- **Small and auditable.** One Activity, a Jetpack Compose interface, no tracking SDKs.
 
 ---
 
@@ -177,16 +179,16 @@ Browsing history, cookies and form data are **never** written to disk.
 | Layer | Choice |
 | --- | --- |
 | **Engine** | [Mozilla GeckoView](https://mozilla.github.io/geckoview/) as a prebuilt Maven artifact (MPL-2.0). No Firefox source is forked, and no Firefox branding, telemetry, experiments or sync code is included |
-| **UI** | Single `Activity`, Material Components (`MaterialCardView`, `MaterialButton`, `Theme.Material3.Dark`), Material Icons (Apache-2.0) |
+| **UI** | Single `Activity`, Jetpack Compose with Material 3 Expressive (`androidx.compose.material3`), Material Icons (Apache-2.0) |
 | **Language** | Kotlin |
 | **Privacy config** | `BrowserApplication.kt` |
-| **Input handling** | `MainActivity.kt` |
-| **Bookmarks** | `BookmarkStore.kt` (JSON in SharedPreferences), `BookmarksDialog.kt` (RecyclerView) |
+| **Input handling** | `MainActivity.kt`, `BrowserController.kt` |
+| **Bookmarks** | `BookmarkStore.kt` (JSON in SharedPreferences), `Library.kt` (Jetpack Compose page) |
 
 ### Developer notes
 
-- **Toolchain:** Gradle 9.7, Android Gradle Plugin 9.4 (Kotlin is built in), Kotlin 2.4, compile SDK 37, target SDK 36, GeckoView 155 (Firefox 155).
-- **Key handling** lives in `MainActivity.dispatchKeyEvent` on Android 12 and older, because GeckoView consumes D-pad and Back events before `onKeyDown` runs. On Android 13+ Back goes through the predictive-back `OnBackPressedCallback` instead.
+- **Toolchain:** Gradle 9.7.1, Android Gradle Plugin 9.4.1 (Kotlin built in), Kotlin 2.4.20, compile SDK 37, target SDK 36, GeckoView 155 (Firefox 155).
+- **Key handling** lives in `MainActivity.dispatchKeyEvent` where D-pad, remote and Back events are routed to `BrowserController.handleKey`.
 - **Passkeys are off.** GeckoView's WebAuthn code depends on Google Play Services, which is proprietary. This build excludes it (`app/build.gradle.kts`) and disables WebAuthn in `BrowserApplication.kt`, so sites fall back to passwords. To re-enable passkeys, remove the `exclude` and the `security.webauth.webauthn` pref.
 - **Backups:** `allowBackup` is off, so bookmarks do not survive an uninstall.
 - **Updates:** there is no in-app auto-update. GeckoView does not update independently of your app releases, so rebuild against a newer GeckoView regularly for security fixes.
@@ -200,7 +202,7 @@ Being upfront about what can go wrong:
 
 **Devices**
 - **Android 8.0 (API 26) or newer only.** Older Fire TV sticks (Fire OS 5 and 6) and Android TV boxes on Android 7 or below cannot run the current engine.
-- **Big install.** The APK is about 157 MB and needs roughly 300 MB of free space once installed. Very cheap TV sticks with little storage may fail to install it.
+- **Big install.** The APK is about 90–93 MB per architecture (~161 MB for the universal build) and needs roughly 300 MB of free space once installed. Very cheap TV sticks with little storage may fail to install it.
 - **Needs memory.** GeckoView is a full Firefox engine. On a stick with about 1 GB of RAM it can be slow, reload pages, or be closed by the system.
 - **Only tested so far** on an Android TV emulator and an Android phone. Different TV brands (Fire TV, Xiaomi, TCL, Sony, generic boxes) may behave differently with the remote, Back button, fullscreen video or the pointer.
 - **Phones:** it installs and runs, but the layout is built for a TV and is locked to landscape. It is not a phone browser.

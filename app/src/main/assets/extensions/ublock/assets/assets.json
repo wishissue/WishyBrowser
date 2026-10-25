@@ -162,7 +162,6 @@
 	"adguard-generic": {
 		"content": "filters",
 		"group": "ads",
-		"off": true,
 		"title": "AdGuard – Ads",
 		"tags": "ads",
 		"contentURL": "https://filters.adtidy.org/extension/ublock/filters/2_without_easylist.txt",
@@ -171,7 +170,6 @@
 	"adguard-mobile": {
 		"content": "filters",
 		"group": "ads",
-		"off": true,
 		"title": "AdGuard – Mobile Ads",
 		"tags": "ads mobile",
 		"ua": "mobile",
@@ -197,6 +195,15 @@
 			"https://ublockorigin.pages.dev/filters/"
 		],
 		"supportURL": "https://easylist.to/"
+	},
+	"wishy-extras": {
+		"content": "filters",
+		"group": "ads",
+		"title": "Wishy extra rules (video and in-page ads)",
+		"tags": "ads",
+		"contentURL": [
+			"assets/wishy/extras.txt"
+		]
 	},
 	"adguard-spyware-url": {
 		"content": "filters",
@@ -385,7 +392,6 @@
 		"content": "filters",
 		"group": "annoyances",
 		"parent": "AdGuard – Annoyances",
-		"off": true,
 		"title": "AdGuard – Popup Overlays",
 		"tags": "annoyances",
 		"contentURL": "https://filters.adtidy.org/extension/ublock/filters/19.txt",
