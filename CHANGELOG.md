@@ -13,6 +13,15 @@ All notable changes to Wishy Browser will be documented in this file.
 - **Ads and trackers were not blocked.** Two causes: (1) uBlock Origin and Wishy Core were never allowed to run in private browsing, and every session is private (reproduced on desktop Firefox: ads leak until the extension is allowed); (2) the extensions were re-installed on every launch, so uBlock started cold each time. They are now installed once (`ensureBuiltIn`) and explicitly allowed, and the first page loads only after the blocker is up.
 - The pointer's link-snapping now attaches to the extension that is actually running.
 - Launcher icon: blue gradient instead of the default green grid; wrong monochrome layer removed; TV banner and Play Store icon rebuilt.
+### Performance and stability
+- **Crash recovery actually recovers.** After a web-process crash or an Android low-memory kill Gecko closes the session, so the old `reload()` did nothing and the page stayed blank. The session is now reopened, and a page that crashes 3 times in a minute sends you home instead of looping.
+- **No automatic full-resolution screenshot on low-RAM TVs** (2 GB or less); it ran when a heavy page like GitHub was at its largest. Previews are still taken when the menu opens or a page is bookmarked. In-memory previews are dropped when Android asks for memory.
+- **Pointer no longer recomposes every frame** and stops animating when idle.
+- **Blocker is lighter:** the three AdGuard lists (not bundled, downloaded and compiled on the TV) are off by default again, as in stock uBlock Origin. Existing installs get the new defaults (SHIELDS_PROFILE 4).
+- **Reduce motion is on by default on weak TVs** (about 2 GB RAM or less), and the page-load indicators are the plain Material ones instead of the always-animating Expressive wavy ones.
+- **Built-in crash reason.** On the next launch a card tells you why the last run ended (Android ran out of memory, browser engine crash, app stopped responding...), read from Android's own exit history (Android 11+).
+- Removed `gfx.webrender.all` (forced WebRender past Mozilla's GPU blocklist).
+- Wishy Core runs in the top frame only (it opened one native port per ad/embed iframe, and the app talked to whichever connected last), snaps the pointer using CSS-pixel coordinates (screen pixels were compared with CSS pixels), only considers links on screen, and its focus outline is no longer lost at `document_start`.
 ### Changed
 - Bundled uBlock filter lists refreshed (`tools/update_lists.sh`); translations trimmed to English.
 - Removed AppCompat, RecyclerView and Material Components; dead code and resources deleted.

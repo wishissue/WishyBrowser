@@ -103,11 +103,40 @@
         return false;
     }
 
-    function findClosest(x, y) {
-        if (!focusables.length) updateFocusables();
+    // Candidates for the pointer snap: what is on screen right now. focusables[] is capped at the first
+    // 300 elements in page order, which on a long page like GitHub never reaches what you are looking at.
+    let viewList = [];
+    let viewListAt = -1e9;
+    function visibleCandidates(left, top, right, bottom) {
+        const now = performance.now();
+        if (now - viewListAt < 400) return viewList;
+        viewListAt = now;
+        const out = [];
+        const all = document.querySelectorAll(FOCUSABLE_SELECTOR);
+        for (let i = 0; i < all.length && out.length < 300; i++) {
+            const el = all[i];
+            if (el.disabled) continue;
+            const r = el.getBoundingClientRect();
+            if (r.width > 0 && r.height > 0 && r.right > left && r.left < right && r.bottom > top && r.top < bottom) out.push(el);
+        }
+        viewList = out;
+        return out;
+    }
+
+    // The app sends the pointer in screen pixels (px, py) and the width of the page area in screen pixels
+    // (viewW). The page works in CSS pixels, so convert in, search, and convert the answer back out.
+    function findClosest(px, py, viewW) {
+        const vv = window.visualViewport;
+        const s = (vv && viewW > 0) ? vv.width / viewW : 1 / (window.devicePixelRatio || 1);
+        const ox = vv ? vv.offsetLeft : 0;
+        const oy = vv ? vv.offsetTop : 0;
+        const x = px * s + ox;
+        const y = py * s + oy;
+        const maxDist = 100 * s; // 100 screen pixels, expressed in CSS pixels
+        const vw = vv ? vv.width : window.innerWidth;
+        const vh = vv ? vv.height : window.innerHeight;
         let closest = null, minDistance = Infinity;
-        const maxDist = 120;
-        focusables.forEach(el => {
+        visibleCandidates(ox, oy, ox + vw, oy + vh).forEach(el => {
             const rect = el.getBoundingClientRect();
             const center = getCenter(rect);
             const dx = center.x - x;
@@ -116,7 +145,10 @@
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 if (dist < maxDist && dist < minDistance) {
                     minDistance = dist;
-                    closest = { x: center.x, y: center.y, width: rect.width, height: rect.height };
+                    closest = {
+                        x: (center.x - ox) / s, y: (center.y - oy) / s,
+                        width: rect.width / s, height: rect.height / s
+                    };
                 }
             }
         });
@@ -128,7 +160,7 @@
             const handled = spatialNavigate(msg.direction);
             port.postMessage({ type: "navigate_result", handled: handled });
         } else if (msg.type === "find_closest") {
-            const result = findClosest(msg.x, msg.y);
+            const result = findClosest(msg.x, msg.y, msg.w);
             port.postMessage({ type: "find_closest_result", result: result });
         }
     });
@@ -141,5 +173,6 @@
             box-shadow: 0 0 12px rgba(56,189,248,0.6) !important;
         }
     `;
-    document.head.appendChild(style);
+    // document.head does not exist yet at document_start, so this used to throw and the outline never appeared.
+    (document.head || document.documentElement).appendChild(style);
 })();

@@ -44,6 +44,9 @@ class BrowserApplication : Application() {
         // create the runtime; helpers must do nothing here.
         if (!isMainProcess()) return
 
+        // Why did the last run end? Android keeps this itself; shown once on screen at the next launch.
+        readLastExit()
+
         @Suppress("WrongConstant")
         val contentBlocking = ContentBlocking.Settings.Builder()
             // Anti-tracking & cookie isolation (Total Cookie Protection)
@@ -88,6 +91,41 @@ class BrowserApplication : Application() {
         applyPrivacyPrefs()
         applySecurityPrefs()
         applyMemoryPrefs()
+    }
+
+    /**
+     * Reads Android's own process-exit history (API 30+) and keeps a one-line summary of the newest
+     * real problem (out of memory, native crash, ANR...) for [ExitReport]. No logcat or adb needed.
+     */
+    private fun readLastExit() {
+        if (Build.VERSION.SDK_INT < 30) return
+        runCatching {
+            val am = getSystemService(ActivityManager::class.java) ?: return
+            val prefs = Prefs(this)
+            val fresh = am.getHistoricalProcessExitReasons(packageName, 0, 10).filter { it.timestamp > prefs.lastExitSeen }
+            if (fresh.isEmpty()) return
+            prefs.lastExitSeen = fresh.maxOf { it.timestamp }
+            val problems = setOf(
+                android.app.ApplicationExitInfo.REASON_LOW_MEMORY, android.app.ApplicationExitInfo.REASON_CRASH,
+                android.app.ApplicationExitInfo.REASON_CRASH_NATIVE, android.app.ApplicationExitInfo.REASON_ANR,
+                android.app.ApplicationExitInfo.REASON_SIGNALED, android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE,
+                android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE,
+            )
+            val worst = fresh.firstOrNull { it.reason in problems } ?: return
+            val what = when (worst.reason) {
+                android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "Android ran out of memory"
+                android.app.ApplicationExitInfo.REASON_CRASH -> "App crash"
+                android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "Browser engine crash"
+                android.app.ApplicationExitInfo.REASON_ANR -> "App stopped responding"
+                android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "Failed to start"
+                android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "Used too many resources"
+                else -> "Stopped by Android"
+            }
+            val proc = worst.processName.removePrefix(packageName).trimStart(':').ifEmpty { "main" }
+            val summary = "$what (process $proc, ${worst.rss / 1024} MB)"
+            Log.w(TAG, "Previous exit: $summary ${worst.description.orEmpty()}")
+            ExitReport.pending = summary
+        }.onFailure { Log.w(TAG, "Could not read exit history", it) }
     }
 
     private fun startExtensions() {
@@ -251,8 +289,9 @@ class BrowserApplication : Application() {
             // One content process: matches the single-tab browser design.
             GeckoPreferenceController.setGeckoPref("dom.ipc.processCount", 1, GeckoPreferenceController.PREF_BRANCH_USER)
 
-            // Enable WebRender GPU acceleration for hardware-accelerated web page layout
-            GeckoPreferenceController.setGeckoPref("gfx.webrender.all", true, GeckoPreferenceController.PREF_BRANCH_USER)
+            // (gfx.webrender.all was removed on purpose: it forces WebRender on every GPU and skips
+            // Mozilla's GPU blocklist, a classic source of compositor crashes on older TV chips, and it
+            // is a start-up setting, so setting it after the runtime exists could not speed anything up.)
 
             // Decoded image cache (24 MB) to prevent image decoding overhead
             GeckoPreferenceController.setGeckoPref("image.mem.max_decoded_image_kb", 24576, GeckoPreferenceController.PREF_BRANCH_USER)
@@ -260,8 +299,6 @@ class BrowserApplication : Application() {
             // Script timeout: prevent unresponsive scripts from freezing the browser engine
             GeckoPreferenceController.setGeckoPref("dom.max_script_run_time", 15, GeckoPreferenceController.PREF_BRANCH_USER)
 
-            // APZ smooth scrolling
-            GeckoPreferenceController.setGeckoPref("apz.force_disable_autoscroll", true, GeckoPreferenceController.PREF_BRANCH_USER)
         } catch (e: Exception) {
             Log.w(TAG, "Could not apply memory preferences", e)
         }
@@ -283,12 +320,18 @@ class BrowserApplication : Application() {
         const val UBLOCK_ID = "uBlock0@raymondhill.net"
         const val CORE_ID = "core@wishy.org"
         /** Bump this when assets.json changes which filter lists are on by default. */
-        private const val SHIELDS_PROFILE = 3
+        private const val SHIELDS_PROFILE = 4
         private const val UBLOCK_URI = "resource://android/assets/extensions/ublock/"
         private const val CORE_URI = "resource://android/assets/extensions/wishy/"
 
         fun from(app: Application): BrowserApplication = app as BrowserApplication
     }
+}
+
+/** Why the previous run ended, shown once as a notification card. */
+object ExitReport {
+    @Volatile var pending: String? = null
+    fun take(): String? { val t = pending; pending = null; return t }
 }
 
 /** What the Shields page shows about one extension. */

@@ -160,6 +160,7 @@
 		"supportURL": "https://github.com/uBlockOrigin/uAssets"
 	},
 	"adguard-generic": {
+		"off": true,
 		"content": "filters",
 		"group": "ads",
 		"title": "AdGuard – Ads",
@@ -168,6 +169,7 @@
 		"supportURL": "https://github.com/AdguardTeam/AdguardFilters#adguard-filters"
 	},
 	"adguard-mobile": {
+		"off": true,
 		"content": "filters",
 		"group": "ads",
 		"title": "AdGuard – Mobile Ads",
@@ -389,6 +391,7 @@
 		"supportURL": "https://github.com/ryanbr/fanboy-adblock/issues"
 	},
 	"adguard-popup-overlays": {
+		"off": true,
 		"content": "filters",
 		"group": "annoyances",
 		"parent": "AdGuard – Annoyances",

@@ -17,6 +17,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.wishy.browser.ui.Sym
 import org.wishy.browser.ui.WishyApp
 
 /**
@@ -66,6 +67,9 @@ class MainActivity : ComponentActivity(), ActivityBridge {
         enableEdgeToEdge()
         val app = BrowserApplication.from(application)
         controller = BrowserController(this, app.runtime, this)
+        ExitReport.take()?.let { controller.notify(NoteKind.WARNING, "Last session ended unexpectedly", it, Sym.Refresh, 12_000L) }
+        // Android tells the app when memory is short; the controller drops its page previews.
+        addOnTrimMemoryListener { level -> controller.onTrimMemory(level) }
 
         setContent {
             val view = LocalView.current

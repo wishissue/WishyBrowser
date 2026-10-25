@@ -483,16 +483,8 @@ class BrowserController(
                 isFullScreen = fullScreen
                 if (fullScreen) focusPage()
             }
-            override fun onCrash(session: GeckoSession) {
-                loading = false
-                notify(NoteKind.WARNING, "Web process recovered", "Reloading page...", Sym.Refresh)
-                session.reload()
-            }
-            override fun onKill(session: GeckoSession) {
-                loading = false
-                notify(NoteKind.WARNING, "Web process restored", "Reloading page...", Sym.Refresh)
-                session.reload()
-            }
+            override fun onCrash(session: GeckoSession) = recoverSession("crashed")
+            override fun onKill(session: GeckoSession) = recoverSession("was stopped by Android (low memory)")
         }
         session.progressDelegate = object : GeckoSession.ProgressDelegate {
             override fun onPageStart(session: GeckoSession, url: String) {
@@ -533,6 +525,61 @@ class BrowserController(
                 if (event.isBlocking) { etpBlocked++; schedulePublish() }
             }
         })
+    }
+
+    // ------------------------------------------------------------------
+    // Crash recovery and memory pressure
+    // ------------------------------------------------------------------
+
+    private val crashTimes = ArrayDeque<Long>()
+
+    /**
+     * After onCrash / onKill Gecko has already CLOSED the session, so session.reload() does nothing and
+     * the page stays blank (or the app looks frozen). The session has to be opened again first.
+     * If the same thing happens 3 times in a minute we stop retrying the page and go home, so a page
+     * that is too heavy for the device cannot trap the app in a crash loop.
+     */
+    private fun recoverSession(why: String) {
+        loading = false
+        val now = SystemClock.uptimeMillis()
+        crashTimes.addLast(now)
+        while (crashTimes.isNotEmpty() && now - crashTimes.first() > 60_000L) crashTimes.removeFirst()
+        val looping = crashTimes.size >= 3
+        val target = if (looping || !url.startsWith("http")) homeTarget() else url
+        ui.post {
+            runCatching { if (!session.isOpen) session.open(runtime) }
+            session.loadUri(target)
+        }
+        if (looping) {
+            crashTimes.clear()
+            notify(NoteKind.WARNING, "This page keeps crashing", "Went home. Try Mobile site or Reader view.", Sym.Refresh, 6000L)
+        } else {
+            notify(NoteKind.WARNING, "Page $why", "Reloading...", Sym.Refresh)
+        }
+    }
+
+    /** About 2 GB of RAM or less: a full-resolution screenshot there can tip the app into an out-of-memory kill. */
+    private val lowRam: Boolean by lazy {
+        val am = activity.getSystemService(android.app.ActivityManager::class.java)
+        val mi = android.app.ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }
+        am.isLowRamDevice || mi.totalMem <= 2_300L * 1024 * 1024
+    }
+
+    private fun systemLowOnMemory(): Boolean {
+        val am = activity.getSystemService(android.app.ActivityManager::class.java)
+        return android.app.ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }.lowMemory
+    }
+
+    /** Android asks apps to let go of memory: drop the in-memory page previews first. */
+    @Suppress("DEPRECATION")
+    fun onTrimMemory(level: Int) {
+        val pressure = level == android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+            level == android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+            level >= android.content.ComponentCallbacks2.TRIM_MEMORY_BACKGROUND
+        if (pressure) {
+            ui.removeCallbacks(captureRunnable)
+            thumbs.clear(includeBookmarks = false)
+        }
     }
 
     // ------------------------------------------------------------------
@@ -598,14 +645,17 @@ class BrowserController(
 
     /** Takes a preview a moment after the page settles (images and fonts need a beat to draw). */
     fun scheduleCapture(delayMs: Long = 1500L) {
-        if (!thumbsEnabled) return
+        // On low-RAM TVs the automatic screenshot is what pushed heavy pages (GitHub) over the edge: it
+        // grabs a full-resolution frame right when the page is at its largest. Previews still happen
+        // when the menu opens or a page is bookmarked.
+        if (!thumbsEnabled || lowRam) return
         ui.removeCallbacks(captureRunnable)
         ui.postDelayed(captureRunnable, delayMs)
     }
 
     /** Snapshot of the visible page. Ordinary pages stay in memory; bookmarked pages are also saved. */
     fun captureNow() {
-        if (!thumbsEnabled || atHome || isFullScreen) return
+        if (!thumbsEnabled || atHome || isFullScreen || systemLowOnMemory()) return
         val gv = geckoView ?: return
         if (gv.width <= 0 || gv.height <= 0) return
         val u = url
@@ -913,7 +963,7 @@ class BrowserController(
         heldKeys.clear()
         activity.window.decorView.removeCallbacks(ticker)
         if (cursorPlaced) {
-            corePort?.postMessage(JSONObject().apply { put("type", "find_closest"); put("x", cursorX); put("y", cursorY) })
+            corePort?.postMessage(JSONObject().apply { put("type", "find_closest"); put("x", cursorX); put("y", cursorY); put("w", viewW) })
         }
     }
 
@@ -941,7 +991,7 @@ class BrowserController(
         val now = SystemClock.uptimeMillis()
         if (now - lastClosestPostMs >= 150L) {
             lastClosestPostMs = now
-            corePort?.postMessage(JSONObject().apply { put("type", "find_closest"); put("x", cursorX); put("y", cursorY) })
+            corePort?.postMessage(JSONObject().apply { put("type", "find_closest"); put("x", cursorX); put("y", cursorY); put("w", viewW) })
         }
     }
 

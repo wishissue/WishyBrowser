@@ -7,6 +7,7 @@ import android.content.Context
  */
 class Prefs(context: Context) {
 
+    private val appCtx = context.applicationContext
     private val sp = context.getSharedPreferences("wishy_prefs", Context.MODE_PRIVATE)
 
     var homeUrl: String?
@@ -42,8 +43,14 @@ class Prefs(context: Context) {
 
     /** Turns every animation into an instant change (for very weak hardware). */
     var reduceMotion: Boolean
-        get() = sp.getBoolean("reduce_motion", false)
+        // On by default for weak TVs (about 2 GB RAM or less): fewer animations while a heavy page loads.
+        get() = sp.getBoolean("reduce_motion", isWeakDevice(appCtx))
         set(value) = sp.edit().putBoolean("reduce_motion", value).apply()
+
+    /** Timestamp of the newest process exit already reported by ExitReport. */
+    var lastExitSeen: Long
+        get() = sp.getLong("last_exit_seen", 0L)
+        set(value) = sp.edit().putLong("last_exit_seen", value).apply()
 
     /** Pointer size multiplier (see CURSOR_SCALES). */
     var cursorScale: Float
@@ -71,6 +78,13 @@ class Prefs(context: Context) {
         set(value) = sp.edit().putString("custom_cursors", value).apply()
 
     companion object {
+        /** About 2 GB of RAM or less. */
+        fun isWeakDevice(ctx: Context): Boolean {
+            val am = ctx.getSystemService(android.app.ActivityManager::class.java) ?: return false
+            val mi = android.app.ActivityManager.MemoryInfo().also { am.getMemoryInfo(it) }
+            return am.isLowRamDevice || mi.totalMem <= 2_300L * 1024 * 1024
+        }
+
         val TEXT_SCALES = floatArrayOf(1.0f, 1.25f, 1.5f, 1.75f, 2.0f)
         val CURSOR_SCALES = floatArrayOf(0.8f, 1.0f, 1.3f, 1.7f)
         val CURSOR_SCALE_LABELS = listOf("Small", "Medium", "Large", "Extra large")

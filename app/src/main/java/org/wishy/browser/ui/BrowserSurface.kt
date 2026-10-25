@@ -22,13 +22,15 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LinearWavyProgressIndicator
-import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import kotlinx.coroutines.delay
 import androidx.compose.material3.Text
@@ -97,7 +99,7 @@ fun BrowserSurface(c: BrowserController) {
                     modifier = Modifier.size(42.dp)
                 ) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        LoadingIndicator(Modifier.size(22.dp))
+                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 3.dp)
                     }
                 }
             }
@@ -148,7 +150,8 @@ private fun Toolbar(c: BrowserController) {
                 TvIconButton(Sym.MoreVert, "Menu", { c.openPage(Page.MENU) }, size = 48.dp)
             }
             if (c.loading) {
-                LinearWavyProgressIndicator({ (c.progress / 100f).coerceIn(0.03f, 1f) }, Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 2.dp))
+                // Plain bar: the wavy Expressive one animates every frame, exactly while a heavy page is loading.
+                LinearProgressIndicator({ (c.progress / 100f).coerceIn(0.03f, 1f) }, Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 2.dp))
             }
         }
     }
@@ -181,10 +184,15 @@ private fun PointerOverlay(c: BrowserController) {
     }
     // Calm pointer: fade it out a little when it has not moved for a few seconds.
     var idle by remember { mutableStateOf(false) }
-    LaunchedEffect(c.cursorX, c.cursorY, c.clickTick, c.pointerVisible) {
-        idle = false
-        delay(4000)
-        idle = true
+    // cursorX/cursorY are read inside snapshotFlow, not passed as effect keys: keys are read during
+    // composition, which recomposed this whole overlay and restarted this coroutine on every frame the
+    // pointer moved, competing with the web page for the main thread.
+    LaunchedEffect(c.clickTick, c.pointerVisible) {
+        snapshotFlow { c.cursorX to c.cursorY }.collectLatest {
+            idle = false
+            delay(4000)
+            idle = true
+        }
     }
     val calm by animateFloatAsState(if (idle) 0.35f else 1f, tween(600), label = "calm")
     AnimatedVisibility(
@@ -197,7 +205,7 @@ private fun PointerOverlay(c: BrowserController) {
         },
         enter = fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()) + scaleIn(MaterialTheme.motionScheme.fastSpatialSpec(), 0.6f),
         exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) + scaleOut(MaterialTheme.motionScheme.fastSpatialSpec(), 0.6f),
-    ) { CursorGlyph(spec, sizeDp) }
+    ) { CursorGlyph(spec, sizeDp, animate = !idle) } // an idle pointer stops animating: no 60 fps redraw while you read
 }
 
 /** Remote hints, shown for a few seconds after the first page loads. */
