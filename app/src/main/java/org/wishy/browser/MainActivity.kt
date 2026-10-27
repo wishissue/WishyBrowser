@@ -9,14 +9,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import org.wishy.browser.ui.Sym
 import org.wishy.browser.ui.WishyApp
 
@@ -65,8 +61,7 @@ class MainActivity : ComponentActivity(), ActivityBridge {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val app = BrowserApplication.from(application)
-        controller = BrowserController(this, app.runtime, this)
+        controller = BrowserController(this, this)
         ExitReport.take()?.let { controller.notify(NoteKind.WARNING, "Last session ended unexpectedly", it, Sym.Refresh, 12_000L) }
         // Android tells the app when memory is short; the controller drops its page previews.
         addOnTrimMemoryListener { level -> controller.onTrimMemory(level) }
@@ -80,14 +75,8 @@ class MainActivity : ComponentActivity(), ActivityBridge {
                     bars.hide(WindowInsetsCompat.Type.systemBars())
                 } else bars.show(WindowInsetsCompat.Type.systemBars())
             }
-            LaunchedEffect(Unit) {
-                // Give Wishy Core the pointer-snapping channel as soon as it exists.
-                launch { controller.attachCore(snapshotFlow { Shields.core }.filterNotNull().first()) }
-                // Count what uBlock blocks (it also changes after "Reset blocker", so keep collecting).
-                launch { snapshotFlow { Shields.ublockExt }.filterNotNull().collect { controller.attachBlocker(it) } }
-                // Load the initial target immediately so navigation starts instantly.
-                controller.session.loadUri(viewIntentUrl(intent) ?: controller.homeTarget())
-            }
+            // Nothing to wait for: no engine to boot and no extensions to install, so the first page starts at once.
+            LaunchedEffect(Unit) { controller.loadUri(viewIntentUrl(intent) ?: controller.homeTarget()) }
             WishyApp(controller)
         }
     }
@@ -107,6 +96,11 @@ class MainActivity : ComponentActivity(), ActivityBridge {
     override fun onPause() {
         if (::controller.isInitialized) controller.onPause()
         super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::controller.isInitialized) controller.onResume()
     }
 
     override fun onDestroy() {

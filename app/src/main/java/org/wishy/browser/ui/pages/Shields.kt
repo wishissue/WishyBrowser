@@ -6,25 +6,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import org.wishy.browser.BrowserApplication
 import org.wishy.browser.BrowserController
+import org.wishy.browser.Opt
+import org.wishy.browser.Page
 import org.wishy.browser.Shields
 import org.wishy.browser.ui.*
 
 @Composable
 fun ShieldsPage(c: BrowserController) {
-    val app = LocalContext.current.applicationContext as BrowserApplication
-    LaunchedEffect(Unit) { app.refreshShields() }
     val active = Shields.blockerActive
     val starting = !Shields.ready
-    val ub = Shields.ublock
-    val core = Shields.coreInfo
     val cs = MaterialTheme.colorScheme
 
     PageScaffold("Shields", { c.popPage() }) {
@@ -73,31 +68,19 @@ fun ShieldsPage(c: BrowserController) {
                     trailing = { Switch(c.notifyBlocked, null) }
                 ) { c.toggleNotifyBlocked() }
             }
-            item { SectionLabel("Layers that remove ads") }
-            item { InfoRow("uBlock filters, EasyList, EasyPrivacy", "On", active) }
-            item { InfoRow("AdGuard ads and mobile ads", "On", active) }
-            item { InfoRow("AdGuard popup overlays", "On", active) }
-            item { InfoRow("Wishy extra rules", "On", active) }
-            item { InfoRow("YouTube ad skipper", "On", core?.allowedPrivate == true && core.enabled) }
-            item { InfoRow("Pop-up windows", "Always blocked", true) }
-            item { SectionLabel("Ad and tracker blocker") }
-            item { InfoRow("uBlock Origin", ub?.version?.let { "Version $it" } ?: "Not installed") }
-            item { InfoRow("Enabled", if (ub?.enabled == true) "Yes" else "No", ub?.enabled == true) }
-            item { InfoRow("Allowed in private tabs", if (ub?.allowedPrivate == true) "Yes" else "No", ub?.allowedPrivate == true) }
-            item {
-                InfoRow("Wishy Core (pointer snapping)", if (core?.allowedPrivate == true && core.enabled) "Running" else "Not running", core?.allowedPrivate == true && core.enabled)
-            }
-            Shields.error?.let { err -> item { InfoRow("Last error", err, false) } }
-            item { ActionRow(Sym.Refresh, "Check again", "Re-read the blocker status") { app.refreshShields() } }
-            item { ActionRow(Sym.Tune, "Reset blocker", "Reinstall uBlock Origin from scratch") { app.resetShields(); c.notify(org.wishy.browser.NoteKind.INFO, "Reinstalling the blocker", "Restart the app when it is done", Sym.Tune) } }
+            item { SectionLabel("Ad and tracker blocking") }
+            item { InfoRow("Blocked hosts (ad servers, EasyPrivacy)", if (active) "${Shields.domains}" else "Loading", active) }
+            item { InfoRow("Hidden ad frames", "On", true) }
+            item { InfoRow("YouTube ad skipper", "On", true) }
+            item { InfoRow("Pop-up windows", "Only when you click", true) }
             item { ActionRow(Sym.AdsClick, "Run an ad-block test", "Opens a public page that scores your blocker") { c.open("https://d3ward.github.io/toolz/adblock.html") } }
-            item { SectionLabel("Always on") }
-            item { InfoRow("Strict tracking protection", "On", true) }
-            item { InfoRow("Fingerprint resistance", "On", true) }
-            item { InfoRow("HTTPS-only mode", "On", true) }
-            item { InfoRow("Encrypted DNS", "On", true) }
-            item { InfoRow("Global Privacy Control", "On", true) }
-            item { InfoRow("History and telemetry", "None kept", true) }
+            item { SectionLabel("Protections (${c.protectionsOn} of ${c.protectionsTotal} on)") }
+            for (o in Opt.entries.filter { it != Opt.LITE }) {
+                item(key = o.key) { InfoRow(o.title, if (c.isOn(o)) "On" else "Off", c.isOn(o)) }
+            }
+            item { InfoRow("Google Safe Browsing and metrics", "Off", true) }
+            item { InfoRow("Encrypted DNS", "Use Android's Private DNS", null) }
+            item { ActionRow(Sym.Tune, "Change privacy options", "Search engine and every switch") { c.openPage(Page.PRIVACY) } }
         }
     }
 }

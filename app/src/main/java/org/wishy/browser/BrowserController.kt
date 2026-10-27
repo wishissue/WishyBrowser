@@ -1,16 +1,43 @@
 package org.wishy.browser
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.Message
 import android.os.SystemClock
 import android.provider.OpenableColumns
 import android.provider.Settings
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.webkit.ConsoleMessage
+import android.webkit.CookieManager
+import android.webkit.GeolocationPermissions
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
+import android.webkit.PermissionRequest
+import android.webkit.RenderProcessGoneDetail
+import android.webkit.SslErrorHandler
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
+import android.webkit.WebStorage
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.net.http.SslError
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -23,24 +50,20 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.content.ContextCompat
+import androidx.webkit.ScriptHandler
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import org.json.JSONObject
-import org.mozilla.geckoview.AllowOrDeny
-import org.mozilla.geckoview.ContentBlocking
-import org.mozilla.geckoview.ExperimentalGeckoViewApi
-import org.mozilla.geckoview.GeckoResult
-import org.mozilla.geckoview.GeckoRuntime
-import org.mozilla.geckoview.GeckoSession
-import org.mozilla.geckoview.GeckoSessionSettings
-import org.mozilla.geckoview.GeckoView
-import org.mozilla.geckoview.ScreenLength
-import org.mozilla.geckoview.WebExtension
 import org.wishy.browser.ui.Sym
+import org.wishy.browser.ui.pages.DONATE_URL
 import java.util.LinkedHashSet
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.max
 import kotlin.math.roundToInt
 
 /** The pages the menu can open. The back stack lives in [BrowserController.stack]. */
-enum class Page { MENU, BOOKMARKS, THEMES, CURSORS, SETTINGS, SHIELDS, NOTIFICATIONS, DEVELOPER, CREDITS, DONATE }
+enum class Page { MENU, BOOKMARKS, THEMES, CURSORS, SETTINGS, SHIELDS, PRIVACY, NOTIFICATIONS, DEVELOPER, CREDITS, DONATE }
 
 /** A dialog a web page asked for, shown by the Compose PromptHost. */
 sealed interface PromptRequest {
@@ -58,8 +81,8 @@ interface ActivityBridge {
 }
 
 /**
- * Owns the single GeckoSession, the D-pad pointer and every piece of state the Compose UI
- * shows. The UI only reads these fields and calls these functions; it never touches Gecko.
+ * Owns the single WebView, the D-pad pointer and every piece of state the Compose UI
+ * shows. The UI only reads these fields and calls these functions.
  *
  * Remote cheat-sheet:
  *   MENU ......... toggle pointer      BACK ......... fullscreen -> page back -> toolbar -> exit
@@ -67,7 +90,6 @@ interface ActivityBridge {
  */
 class BrowserController(
     private val activity: ComponentActivity,
-    val runtime: GeckoRuntime,
     private val bridge: ActivityBridge,
 ) {
     val prefs = Prefs(activity.applicationContext)
@@ -81,8 +103,17 @@ class BrowserController(
 
     /** Pages opened since the app started. Memory only: this browser keeps no history. */
     val recents: SnapshotStateList<Recent> = mutableStateListOf()
-    val session: GeckoSession
-    var geckoView: GeckoView? = null
+    private var webRef: WebView? = null
+    /** The page view. Bumped when the renderer died and the view had to be rebuilt (the UI re-hosts it). */
+    val web: WebView get() = webRef!!
+    var webGen by mutableIntStateOf(0)
+        private set
+    private var customView: View? = null
+    private var customCb: WebChromeClient.CustomViewCallback? = null
+    private var fileCb: ValueCallback<Array<Uri>>? = null
+    private var promptCancel: (() -> Unit)? = null
+    private var upgradedTo: String? = null
+    private var fallbackHttp: String? = null
 
     // ---- page state ----
     var url by mutableStateOf("about:blank")
@@ -128,19 +159,46 @@ class BrowserController(
         private set
     var thumbsEnabled by mutableStateOf(prefs.thumbsEnabled)
         private set
+    @set:JvmName("internalSetSearchEngine")
+    var searchEngine by mutableStateOf(SearchEngine.byId(prefs.searchEngine))
+        private set
+
+    // ---- privacy switches (see Opt in Engine.kt) ----
+    /** The switches that are on. Replaced as a whole, so request threads can read it without a lock. */
+    @Volatile private var enabledOpts: Set<Opt> = Opt.entries.filter { prefs.opt(it) }.toSet()
+    private var optTick by mutableIntStateOf(0)
+    private fun has(o: Opt) = o in enabledOpts
+    /** For the UI: reading this makes Compose redraw when a switch changes. */
+    fun isOn(o: Opt): Boolean { optTick; return o in enabledOpts }
+    val protectionsOn: Int get() { optTick; return Opt.entries.count { it != Opt.LITE && it in enabledOpts } }
+    val protectionsTotal: Int get() = Opt.entries.count { it != Opt.LITE }
+
+    // ---- update notice and donation reminder (see Updates.kt) ----
+    var promo by mutableStateOf<Promo?>(null)
+        private set
+    var updateCheckOn by mutableStateOf(prefs.updateCheck)
+        private set
+    private var pendingUpdate: Promo.Update? = null
+
+    // ---- find in page ----
+    var findOpen by mutableStateOf(false)
+        private set
+    var findTotal by mutableIntStateOf(0)
+        private set
+    var findIndex by mutableIntStateOf(0)
+        private set
 
     // ---- blocked ads and trackers ----
-    /** Blocked on the current page: uBlock Origin's count plus Gecko's own tracker blocking. */
+    /** Requests blocked on the current page. */
     var blockedNow by mutableIntStateOf(0)
         private set
     /** Blocked on every page since the app opened. */
     var blockedSession by mutableIntStateOf(0)
         private set
-    private var ubBlocked = 0
-    private var etpBlocked = 0
+    private val blockedReq = AtomicInteger()
+    private val publishQueued = AtomicBoolean(false)
     private var pageMax = 0
     private var sessionBase = 0
-    private var publishPending = false
     private var noticeFor: String? = null
     private var lastNoticedUrl: String? = null
 
@@ -161,9 +219,9 @@ class BrowserController(
     // ---- pointer ----
     var pointerOn by mutableStateOf(true)
         private set
-    var cursorX by mutableFloatStateOf(0f)
+    var cursorX = 0f
         private set
-    var cursorY by mutableFloatStateOf(0f)
+    var cursorY = 0f
         private set
     var clickTick by mutableIntStateOf(0)
         private set
@@ -183,29 +241,178 @@ class BrowserController(
     /** Short key-hint strip shown once after the first page loads. */
     var showHints by mutableStateOf(false)
         private set
-    private var corePort: WebExtension.Port? = null
+    private var snapBusy = false
+    /** The native pointer view; the UI hosts it on top of the page and only tells it which glyph to use. */
+    val pointer = PointerView(activity)
+    private val snapRequest = Runnable { if (heldKeys.isEmpty()) requestClosest() }
+    private var scrollRemainder = 0f
+
+    fun placeCursor() = pointer.moveTo(cursorX, cursorY)
 
     /** The URL pill in the toolbar and the search pill on the home screen take this focus. */
     val urlFocus = FocusRequester()
 
     val pointerVisible: Boolean
-        get() = pointerOn && !atHome && !chromeFocused && overlay == null && prompt == null
+        get() = pointerOn && !atHome && !chromeFocused && !isFullScreen && overlay == null && prompt == null && !findOpen && promo == null
 
-    init {
-        val desktop = prefs.desktopMode
-        // usePrivateMode = true: Gecko never writes history, form data or persistent
-        // cookies to disk. Extensions are explicitly allowed in private mode (BrowserApplication).
-        val settings = GeckoSessionSettings.Builder()
-            .usePrivateMode(true)
-            // Without this flag the Strict tracking protection set in BrowserApplication is not applied to the session.
-            .useTrackingProtection(true)
-            .userAgentMode(if (desktop) GeckoSessionSettings.USER_AGENT_MODE_DESKTOP else GeckoSessionSettings.USER_AGENT_MODE_MOBILE)
-            .viewportMode(if (desktop) GeckoSessionSettings.VIEWPORT_MODE_DESKTOP else GeckoSessionSettings.VIEWPORT_MODE_MOBILE)
-            .build()
-        session = GeckoSession(settings)
-        session.open(runtime)
-        installDelegates()
-        thumbs.prune(bookmarks.map { it.url })
+    // ------------------------------------------------------------------
+    // The WebView and every privacy switch it has
+    // ------------------------------------------------------------------
+
+    /** Cookies, DOM storage, cache, form data and history are wiped at launch and at exit: nothing is kept. */
+    private fun wipePrivateData(force: Boolean = false) {
+        if (!force && !has(Opt.WIPE_EXIT)) return
+        runCatching {
+            val cm = CookieManager.getInstance()
+            cm.removeAllCookies(null); cm.flush()
+            WebStorage.getInstance().deleteAllData()
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    @Suppress("DEPRECATION")
+    private fun createWeb(): WebView {
+        val w = WebView(activity)
+        w.setBackgroundColor(Color.BLACK)          // no white flash while a page loads
+        w.overScrollMode = View.OVER_SCROLL_NEVER
+        w.isVerticalScrollBarEnabled = false
+        w.isHorizontalScrollBarEnabled = false
+        w.isSaveEnabled = false
+        w.isFocusable = true
+        w.isFocusableInTouchMode = true
+        val s = w.settings
+        s.javaScriptEnabled = true
+        s.domStorageEnabled = true                  // modern sites break without it; wiped at exit
+        s.databaseEnabled = false
+        // Privacy: nothing local, nothing remembered, nothing shared with Google.
+        s.allowFileAccess = false
+        s.allowContentAccess = false
+        s.allowFileAccessFromFileURLs = false
+        s.allowUniversalAccessFromFileURLs = false
+        s.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        if (Build.VERSION.SDK_INT >= 26) s.safeBrowsingEnabled = false
+        s.setSupportZoom(false)
+        s.builtInZoomControls = false
+        s.displayZoomControls = false
+        s.setSupportMultipleWindows(true)           // pop-ups are intercepted in onCreateWindow
+        s.javaScriptCanOpenWindowsAutomatically = false
+        s.useWideViewPort = true
+        s.loadWithOverviewMode = prefs.desktopMode
+        s.textZoom = (prefs.textScale * 100f).roundToInt()
+        WebView.setWebContentsDebuggingEnabled(false)
+        CookieManager.getInstance().setAcceptCookie(true)
+        w.setDownloadListener { _, _, _, _, _ ->
+            notify(NoteKind.INFO, "Downloads are not supported", "This browser only shows pages", Sym.Close)
+        }
+        w.setOnScrollChangeListener { _, _, y, _, _ -> pageScrollY = y }
+        w.webViewClient = client
+        w.webChromeClient = chrome
+        w.setFindListener { active, total, _ -> findIndex = if (total == 0) 0 else active + 1; findTotal = total }
+        applyOpts(w)
+        return w
+    }
+
+    private var docScript: ScriptHandler? = null
+    private val docStartOk: Boolean get() = WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
+
+    private val privacyJs: String by lazy { runCatching { activity.assets.open("privacy.js").bufferedReader().use { it.readText() } }.getOrDefault("") }
+
+    /** The privacy script with this moment's switches in front of it. Empty when nothing needs injecting. */
+    private fun privacyScript(): String {
+        val fp = has(Opt.FINGERPRINT); val ref = has(Opt.REFERRER); val ban = has(Opt.COOKIE_BANNERS)
+        if (!(fp || ref || ban) || privacyJs.isEmpty()) return ""
+        return "window.__wyCfg={fp:$fp,ref:$ref,banners:$ban};" + privacyJs
+    }
+
+    /** Pushes every switch into the WebView. Runs for each new WebView and whenever a switch changes. */
+    @Suppress("DEPRECATION")
+    private fun applyOpts(w: WebView) {
+        val s = w.settings
+        s.saveFormData = !has(Opt.FORMS)
+        s.savePassword = !has(Opt.FORMS)
+        s.setGeolocationEnabled(!has(Opt.LOCATION))
+        s.mediaPlaybackRequiresUserGesture = has(Opt.AUTOPLAY)
+        s.blockNetworkImage = has(Opt.LITE)
+        s.userAgentString = Privacy.userAgent(activity, prefs.desktopMode, has(Opt.COMMON_IDENTITY))
+        CookieManager.getInstance().setAcceptThirdPartyCookies(w, !has(Opt.THIRD_PARTY_COOKIES))
+        runCatching { docScript?.remove() }
+        docScript = null
+        val js = privacyScript()
+        if (js.isNotEmpty() && docStartOk) docScript = runCatching { WebViewCompat.addDocumentStartJavaScript(w, js, setOf("*")) }.getOrNull()
+    }
+
+    fun setOpt(o: Opt, on: Boolean) {
+        prefs.setOpt(o, on)
+        enabledOpts = if (on) enabledOpts + o else enabledOpts - o
+        optTick++
+        applyOpts(web)
+        val later = o == Opt.FINGERPRINT || o == Opt.REFERRER || o == Opt.COOKIE_BANNERS || o == Opt.COMMON_IDENTITY || o == Opt.LITE
+        notify(if (on) NoteKind.SUCCESS else NoteKind.WARNING, "${o.title}: ${if (on) "on" else "off"}", if (later && !atHome) "Applies to the next page you open" else null, o.icon)
+        if (o == Opt.LITE && !atHome) web.reload()
+    }
+
+    fun turnAllProtectionsOn() {
+        for (o in Opt.entries) if (o != Opt.LITE) { prefs.setOpt(o, true) }
+        enabledOpts = enabledOpts + Opt.entries.filter { it != Opt.LITE }
+        optTick++
+        applyOpts(web)
+        notify(NoteKind.SUCCESS, "Every protection is on", "$protectionsTotal of $protectionsTotal", Sym.ShieldFilled)
+    }
+
+    /** The "fire button": cookies, storage, cache, history, form data and previews are erased now, then Home opens. */
+    fun clearBrowsingData() {
+        wipePrivateData(force = true)
+        runCatching { web.clearCache(true); web.clearHistory(); web.clearFormData() }
+        thumbs.clear(includeBookmarks = false)
+        recents.clear()
+        goHome()
+        notify(NoteKind.SUCCESS, "Browsing data cleared", "Cookies, cache, history and previews", Sym.DeleteSweep)
+    }
+
+    fun setSearchEngine(e: SearchEngine) {
+        prefs.searchEngine = e.id; searchEngine = e
+        notify(NoteKind.INFO, "Search with ${e.label}", null, Sym.Search)
+    }
+
+    // ---- find in page ----
+    fun openFind() {
+        if (atHome) { notify(NoteKind.WARNING, "Open a page first", "Then you can search inside it", Sym.Search); return }
+        stack.clear(); stopCursor()
+        findTotal = 0; findIndex = 0
+        findOpen = true
+    }
+
+    fun findInPage(query: String) {
+        if (query.isBlank()) { runCatching { web.clearMatches() }; findTotal = 0; findIndex = 0 } else web.findAllAsync(query)
+    }
+
+    fun findNext(forward: Boolean) { if (findTotal > 0) web.findNext(forward) }
+
+    fun closeFind() {
+        findOpen = false
+        runCatching { web.clearMatches() }
+        findTotal = 0; findIndex = 0
+        focusPage()
+    }
+
+    fun copyLink() {
+        if (atHome) { notify(NoteKind.WARNING, "Open a page first", null, Sym.ContentCopy); return }
+        val cm = activity.getSystemService(android.content.ClipboardManager::class.java)
+        cm?.setPrimaryClip(android.content.ClipData.newPlainText("link", url))
+        notify(NoteKind.SUCCESS, "Link copied", hostOf(url), Sym.ContentCopy)
+    }
+
+    /** The renderer died or was killed: a WebView in that state cannot be reused, so build a fresh one. */
+    private fun rebuildWeb(target: String) {
+        val old = webRef
+        webRef = createWeb()
+        webGen++
+        loadUri(target)
+        old?.let {
+            it.stopLoading()
+            // Compose removes it from its parent when webGen changes; destroy a moment later.
+            ui.postDelayed({ runCatching { (it.parent as? ViewGroup)?.removeView(it); it.destroy() } }, 600L)
+        }
     }
 
     // ------------------------------------------------------------------
@@ -221,31 +428,46 @@ class BrowserController(
         val hasSpace = s.contains(' ')
         if (!hasSpace && Regex("^\\d{1,3}(\\.\\d{1,3}){3}(:\\d+)?(/.*)?$").matches(s)) return "http://$s"
         if (!hasSpace && s.contains('.')) return "https://$s"
-        return "https://duckduckgo.com/html/?q=" + Uri.encode(s)
+        return searchEngine.searchUrl(s)
     }
 
     fun open(input: String) {
         if (input.isBlank()) return
         exitArmed = false
         stack.clear()
-        session.loadUri(resolveInput(input))
+        loadUri(resolveInput(input))
         focusPage()
     }
 
     fun goHome() {
         exitArmed = false
         stack.clear()
-        session.loadUri(homeTarget())
+        loadUri(homeTarget())
     }
 
-    fun back() { session.goBack() }
-    fun forward() { session.goForward() }
-    fun reload() { session.reload() }
-    fun stop() { session.stop() }
+    /** Every navigation we start goes through here: tracking parameters removed, http upgraded to https (not on LAN hosts). */
+    fun loadUri(raw: String) {
+        var u = if (has(Opt.CLEAN_LINKS)) Privacy.clean(raw) else raw
+        fallbackHttp = null; upgradedTo = null
+        val p = Uri.parse(u)
+        if (has(Opt.HTTPS_UPGRADE) && p.scheme == "http" && !Privacy.isLocal(p.host)) {
+            fallbackHttp = u
+            u = p.buildUpon().scheme("https").build().toString()
+            upgradedTo = u
+        }
+        web.loadUrl(u, pageHeaders())
+    }
+
+    private fun pageHeaders(): Map<String, String> = if (has(Opt.GPC)) Privacy.HEADERS else emptyMap()
+
+    fun back() { web.goBack() }
+    fun forward() { web.goForward() }
+    fun reload() { web.reload() }
+    fun stop() { web.stopLoading() }
 
     fun focusPage() {
         chromeFocused = false
-        runCatching { geckoView?.requestFocus() }
+        runCatching { web.requestFocus() }
     }
 
     fun focusToolbar() {
@@ -255,7 +477,7 @@ class BrowserController(
 
     /** Called by Compose when the app opens or something closes, to give focus back to the page. */
     fun settleFocus() {
-        if (overlay == null && prompt == null && !atHome) focusPage()
+        if (overlay == null && prompt == null && !atHome && !findOpen && promo == null) focusPage()
     }
 
     /** Shows a notification card and keeps it in the Notifications page. */
@@ -284,7 +506,6 @@ class BrowserController(
     fun openPage(p: Page) {
         stopCursor()
         // Grab a fresh picture of the page before the menu covers it, for the preview card.
-        if (p == Page.MENU) captureNow()
         if (p == Page.NOTIFICATIONS) unreadNotes = 0
         if (overlay != p) stack.add(p)
     }
@@ -298,7 +519,84 @@ class BrowserController(
     fun dismissOnboarding() {
         prefs.onboardingShown = true
         showOnboarding = false
+        ui.postDelayed({ tryShowPromo() }, 1500L)
     }
+
+    // ------------------------------------------------------------------
+    // Update notice and "buy me a coffee" reminder
+    // ------------------------------------------------------------------
+
+    val versionName: String get() = currentVersion()
+
+    private fun currentVersion(): String =
+        runCatching { activity.packageManager.getPackageInfo(activity.packageName, 0).versionName }.getOrNull() ?: "0"
+
+    fun setUpdateCheck(on: Boolean) {
+        prefs.updateCheck = on; updateCheckOn = on
+        notify(NoteKind.INFO, if (on) "Update notices on" else "Update notices off", if (on) "Wishy asks GitHub once a day. Nothing is downloaded." else null, Sym.TipsAndUpdates)
+    }
+
+    /** Called once after start-up. Asks about updates (at most daily), then shows whatever is due. */
+    private fun startPromos() {
+        val now = System.currentTimeMillis()
+        if (prefs.firstRunAt <= 0L || prefs.firstRunAt > now) prefs.firstRunAt = now
+        if (prefs.updateCheck && now - prefs.lastUpdateCheck > 20L * 60 * 60 * 1000) checkForUpdate(manual = false) else tryShowPromo()
+    }
+
+    /** [manual]: from Settings, so it always answers, even when this version was already announced. */
+    fun checkForUpdate(manual: Boolean) {
+        if (manual) notify(NoteKind.INFO, "Checking for a new version", null, Sym.Refresh, 1800L)
+        Thread({
+            val r = runCatching { UpdateCheck.fetchLatest() }
+            ui.post {
+                r.onSuccess { rel ->
+                    prefs.lastUpdateCheck = System.currentTimeMillis()
+                    val cur = currentVersion()
+                    if (UpdateCheck.isNewer(rel.version, cur) && (manual || prefs.lastUpdateNotified != rel.version)) {
+                        pendingUpdate = Promo.Update(cur, rel.version, rel.notes)
+                    } else if (manual) {
+                        notify(NoteKind.SUCCESS, "You have the newest version", cur, Sym.CheckCircleFilled)
+                    }
+                }.onFailure {
+                    if (manual) notify(NoteKind.WARNING, "Could not check for updates", "Check your connection and try again", Sym.Warning, 4500L)
+                }
+                tryShowPromo()
+            }
+        }, "wishy-update").start()
+    }
+
+    /** Shows one card at a time, and only when nothing else needs the screen. An update comes before a coffee. */
+    private fun tryShowPromo() {
+        if (promo != null) return
+        if (prompt != null || showOnboarding || overlay != null || findOpen || isFullScreen || loading) {
+            ui.removeCallbacks(promoRetry)
+            ui.postDelayed(promoRetry, 15_000L)
+            return
+        }
+        pendingUpdate?.let {
+            pendingUpdate = null
+            prefs.lastUpdateNotified = it.version
+            stopCursor()
+            promo = it
+            return
+        }
+        val now = System.currentTimeMillis()
+        if (DonateSchedule.isDue(now, prefs.firstRunAt, prefs.lastDonateAsk)) {
+            prefs.lastDonateAsk = now
+            stopCursor()
+            promo = Promo.Donate(DonateSchedule.monthsUsed(now, prefs.firstRunAt))
+        }
+    }
+
+    private val promoRetry = Runnable { tryShowPromo() }
+
+    fun dismissPromo() { promo = null; focusPageIfBrowsing() }
+
+    fun openDonateFromPromo() { promo = null; open(DONATE_URL) }
+
+    fun openDonateQrFromPromo() { promo = null; stack.clear(); openPage(Page.DONATE) }
+
+    private fun focusPageIfBrowsing() { if (overlay == null && prompt == null && !atHome && !findOpen) focusPage() }
 
     // ------------------------------------------------------------------
     // Bookmarks
@@ -381,9 +679,9 @@ class BrowserController(
     fun toggleDesktopMode() {
         val on = !desktopMode
         prefs.desktopMode = on; desktopMode = on
-        session.settings.setUserAgentMode(if (on) GeckoSessionSettings.USER_AGENT_MODE_DESKTOP else GeckoSessionSettings.USER_AGENT_MODE_MOBILE)
-        session.settings.setViewportMode(if (on) GeckoSessionSettings.VIEWPORT_MODE_DESKTOP else GeckoSessionSettings.VIEWPORT_MODE_MOBILE)
-        session.reload()
+        web.settings.userAgentString = Privacy.userAgent(activity, on, has(Opt.COMMON_IDENTITY))
+        web.settings.loadWithOverviewMode = on
+        web.reload()
         notify(NoteKind.INFO, if (on) "Desktop site on" else "Mobile site on", "Reloading the page", Sym.DesktopWindows)
     }
 
@@ -392,12 +690,12 @@ class BrowserController(
         val i = scales.indexOfFirst { it >= textScale - 0.01f }.coerceAtLeast(0)
         val next = scales[(i + 1) % scales.size]
         prefs.textScale = next; textScale = next
-        runtime.settings.setFontSizeFactor(next)
+        web.settings.textZoom = (next * 100f).roundToInt()
         notify(NoteKind.INFO, "Text size ${(next * 100).roundToInt()}%", null, Sym.TextIncrease)
     }
 
     fun openReader() {
-        if (!atHome) session.loadUri("about:reader?url=$url")
+        if (!atHome) web.evaluateJavascript(READER_JS, null)
     }
 
     fun openDefaultBrowserSettings() {
@@ -419,12 +717,14 @@ class BrowserController(
     /** Handle Back button: closes prompts and overlays first, then page navigation. */
     fun handleBack() {
         when {
-            prompt != null -> prompt = null
+            prompt != null -> { val c = promptCancel; promptCancel = null; prompt = null; c?.invoke() }
+            promo != null -> dismissPromo()
+            findOpen -> closeFind()
             stack.isNotEmpty() -> popPage()
-            isFullScreen -> session.exitFullScreen()
+            isFullScreen -> chrome.onHideCustomView()
             atHome -> if (exitArmed) bridge.finishApp() else { exitArmed = true; notify(NoteKind.INFO, "Press Back again to exit", null, Sym.Close, 2600L) }
             chromeFocused -> if (exitArmed) bridge.finishApp() else focusPage()
-            canGoBack -> session.goBack()
+            canGoBack -> web.goBack()
             else -> { exitArmed = true; focusToolbar(); notify(NoteKind.INFO, "Press Back again to exit", null, Sym.Close, 2600L) }
         }
     }
@@ -433,98 +733,218 @@ class BrowserController(
     // Delegates
     // ------------------------------------------------------------------
 
-    fun attachCore(ext: WebExtension) {
-        ext.setMessageDelegate(object : WebExtension.MessageDelegate {
-            override fun onConnect(port: WebExtension.Port) {
-                corePort = port
-                port.setDelegate(object : WebExtension.PortDelegate {
-                    override fun onPortMessage(message: Any, port: WebExtension.Port) {
-                        if (message is JSONObject && message.optString("type") == "find_closest_result") {
-                            val r = message.optJSONObject("result") ?: return
-                            snapCursorTo(r.optDouble("x").toFloat(), r.optDouble("y").toFloat())
-                        }
-                    }
-                    override fun onDisconnect(port: WebExtension.Port) {
-                        if (corePort == port) corePort = null
-                    }
-                })
+    /** Page lifecycle, request blocking, https upgrade and tracking-parameter removal. */
+    private val client = object : WebViewClient() {
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+            if (request.isForMainFrame || !has(Opt.TRACKERS) || !Blocklist.isBlocked(request.url.host)) return null
+            blockedReq.incrementAndGet()
+            if (publishQueued.compareAndSet(false, true)) ui.postDelayed({ publishQueued.set(false); publishBlocked() }, 350L)
+            return Privacy.emptyResponse()
+        }
+
+        override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+            val scheme = request.url.scheme
+            if (scheme != "http" && scheme != "https") return scheme != "about" && scheme != "blob" && scheme != "data" // no intent:/market: hand-offs
+            if (!request.isForMainFrame) return false
+            val u = request.url.toString()
+            val cleaned = if (has(Opt.CLEAN_LINKS)) Privacy.clean(u) else u
+            val upgrade = has(Opt.HTTPS_UPGRADE) && scheme == "http" && !Privacy.isLocal(request.url.host)
+            if (cleaned == u && !upgrade) return false
+            ui.post { loadUri(cleaned) }
+            return true
+        }
+
+        override fun onPageStarted(view: WebView, u: String?, favicon: Bitmap?) {
+            this@BrowserController.url = u ?: "about:blank"
+            title = ""
+            progress = 0; loading = true
+            ui.removeCallbacks(captureRunnable)
+            ui.removeCallbacks(blockedNotice)
+            sessionBase += pageMax
+            pageMax = 0; blockedReq.set(0)
+            blockedNow = 0; blockedSession = sessionBase
+            readerable = false
+            inject(view)
+        }
+
+        override fun onPageCommitVisible(view: WebView, u: String?) = inject(view)
+
+        override fun doUpdateVisitedHistory(view: WebView, u: String?, isReload: Boolean) {
+            if (u != null) this@BrowserController.url = u
+            canGoBack = view.canGoBack()
+            canGoForward = view.canGoForward()
+        }
+
+        override fun onPageFinished(view: WebView, u: String?) {
+            inject(view)
+            loading = false; progress = 100
+            canGoBack = view.canGoBack(); canGoForward = view.canGoForward()
+            if (u == null || u.startsWith("about:")) return
+            ui.postDelayed({ runCatching { view.evaluateJavascript(READABLE_JS) { r -> readerable = r == "true" } } }, 1200L)
+            rememberRecent()
+            scheduleCapture()
+            if (!hintsShown && !atHome) {
+                hintsShown = true; showHints = true
+                ui.postDelayed({ showHints = false }, 7000L)
             }
-        }, "wishy_core")
+            noticeFor = this@BrowserController.url
+            ui.removeCallbacks(blockedNotice)
+            ui.postDelayed(blockedNotice, 2200L)
+        }
+
+        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+            if (!request.isForMainFrame) return
+            loading = false
+            // https upgrade failed (site has no https): retry the original http address once.
+            val http = fallbackHttp
+            if (http != null && request.url.toString() == upgradedTo) {
+                fallbackHttp = null; upgradedTo = null
+                web.loadUrl(http, pageHeaders())
+                notify(NoteKind.WARNING, "No secure version of this site", "Opened over http", Sym.Warning)
+                return
+            }
+            notify(NoteKind.WARNING, "Can't open this page", hostOf(request.url.toString()), Sym.Warning, 5000L)
+        }
+
+        override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
+            handler.cancel()     // never "proceed anyway"
+            loading = false
+            notify(NoteKind.WARNING, "Connection is not private", hostOf(error.url ?: url), Sym.Lock, 6000L)
+        }
+
+        override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+            recoverSession(if (detail.didCrash()) "crashed" else "was stopped by Android (low memory)")
+            return true
+        }
     }
 
-    private fun installDelegates() {
-        session.navigationDelegate = object : GeckoSession.NavigationDelegate {
-            override fun onLocationChange(
-                session: GeckoSession, url: String?,
-                perms: MutableList<GeckoSession.PermissionDelegate.ContentPermission>, hasUserGesture: Boolean
-            ) {
-                this@BrowserController.url = url ?: "about:blank"
-                title = ""
-            }
-            override fun onCanGoBack(session: GeckoSession, canGoBack: Boolean) { this@BrowserController.canGoBack = canGoBack }
-            override fun onCanGoForward(session: GeckoSession, canGoForward: Boolean) { this@BrowserController.canGoForward = canGoForward }
-            // target=_blank / window.open would be dropped in a single-tab browser: open here instead.
-            override fun onLoadRequest(
-                session: GeckoSession, request: GeckoSession.NavigationDelegate.LoadRequest
-            ): GeckoResult<AllowOrDeny>? {
-                if (request.target == GeckoSession.NavigationDelegate.TARGET_WINDOW_NEW) {
-                    session.loadUri(request.uri)
-                    return GeckoResult.fromValue(AllowOrDeny.DENY)
+    /** Pointer snapping, D-pad link navigation, ad-frame cleanup and the YouTube ad skipper (assets/wishy.js). */
+    private val wishyJs: String by lazy { runCatching { activity.assets.open("wishy.js").bufferedReader().use { it.readText() } }.getOrDefault("") }
+
+    private fun inject(view: WebView) {
+        val u = view.url ?: return
+        if (!u.startsWith("http")) return
+        view.evaluateJavascript(wishyJs, null)
+        // Without document-start scripts the privacy layer runs as early as it can (it guards against running twice).
+        if (!docStartOk) privacyScript().let { if (it.isNotEmpty()) view.evaluateJavascript(it, null) }
+    }
+
+    /** Dialogs, permissions, pop-ups, file upload and full-screen video. */
+    private val chrome = object : WebChromeClient() {
+        override fun onProgressChanged(view: WebView, newProgress: Int) { if (newProgress != progress) progress = newProgress }
+
+        override fun onReceivedTitle(view: WebView, t: String?) {
+            title = t ?: ""
+            updateRecentTitle()
+        }
+
+        override fun onConsoleMessage(m: ConsoleMessage?): Boolean = true
+
+        override fun getDefaultVideoPoster(): Bitmap = Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888)
+
+        override fun onShowCustomView(view: View, callback: WebChromeClient.CustomViewCallback) {
+            if (customView != null) { callback.onCustomViewHidden(); return }
+            customView = view; customCb = callback
+            view.setBackgroundColor(Color.BLACK)
+            activity.addContentView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            isFullScreen = true
+        }
+
+        override fun onHideCustomView() {
+            val v = customView ?: return
+            (v.parent as? ViewGroup)?.removeView(v)
+            customView = null
+            customCb?.onCustomViewHidden(); customCb = null
+            isFullScreen = false
+            focusPage()
+        }
+
+        // Pop-ups: only when the user caused it, and always in this same tab.
+        override fun onCreateWindow(view: WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: Message): Boolean {
+            if (has(Opt.POPUPS) && !isUserGesture) return false
+            val tmp = WebView(activity)
+            tmp.settings.javaScriptEnabled = false
+            tmp.webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(v: WebView, r: WebResourceRequest): Boolean {
+                    val target = r.url.toString()
+                    ui.post { loadUri(target); runCatching { tmp.destroy() } }
+                    return true
                 }
-                return null
+            }
+            (resultMsg.obj as WebView.WebViewTransport).webView = tmp
+            resultMsg.sendToTarget()
+            return true
+        }
+
+        override fun onJsAlert(view: WebView, u: String?, message: String?, result: JsResult): Boolean {
+            promptCancel = { result.cancel() }
+            prompt = PromptRequest.Alert(hostOf(u ?: url), message) { prompt = null; promptCancel = null; result.confirm() }
+            return true
+        }
+
+        override fun onJsConfirm(view: WebView, u: String?, message: String?, result: JsResult): Boolean {
+            promptCancel = { result.cancel() }
+            prompt = PromptRequest.Confirm(hostOf(u ?: url), message) { ok ->
+                prompt = null; promptCancel = null
+                if (ok) result.confirm() else result.cancel()
+            }
+            return true
+        }
+
+        override fun onJsPrompt(view: WebView, u: String?, message: String?, defaultValue: String?, result: JsPromptResult): Boolean {
+            promptCancel = { result.cancel() }
+            prompt = PromptRequest.TextInput(hostOf(u ?: url), message, defaultValue ?: "") { text ->
+                prompt = null; promptCancel = null
+                if (text != null) result.confirm(text) else result.cancel()
+            }
+            return true
+        }
+
+        override fun onJsBeforeUnload(view: WebView, u: String?, message: String?, result: JsResult): Boolean {
+            result.confirm(); return true     // never trap the user on a page
+        }
+
+        override fun onGeolocationPermissionsShowPrompt(origin: String?, callback: GeolocationPermissions.Callback) {
+            callback.invoke(origin, false, false)
+        }
+
+        override fun onPermissionRequest(request: PermissionRequest) {
+            val wanted = request.resources.filter {
+                it == PermissionRequest.RESOURCE_VIDEO_CAPTURE || it == PermissionRequest.RESOURCE_AUDIO_CAPTURE
+            }
+            // Anything else (DRM device id, MIDI) is refused.
+            if (wanted.isEmpty()) { request.deny(); return }
+            val host = request.origin.host ?: request.origin.toString()
+            promptCancel = { request.deny() }
+            prompt = PromptRequest.Permission(host) { allow ->
+                prompt = null; promptCancel = null
+                if (!allow) {
+                    request.deny()
+                } else {
+                    val needed = wanted.map {
+                        if (it == PermissionRequest.RESOURCE_VIDEO_CAPTURE) android.Manifest.permission.CAMERA else android.Manifest.permission.RECORD_AUDIO
+                    }.filter { ContextCompat.checkSelfPermission(activity, it) != PackageManager.PERMISSION_GRANTED }
+                    if (needed.isEmpty()) request.grant(wanted.toTypedArray())
+                    else bridge.requestPermissions(needed.toTypedArray()) { ok -> if (ok) request.grant(wanted.toTypedArray()) else request.deny() }
+                }
             }
         }
-        session.contentDelegate = object : GeckoSession.ContentDelegate {
-            override fun onTitleChange(session: GeckoSession, title: String?) {
-                this@BrowserController.title = title ?: ""
-                updateRecentTitle()
+
+        override fun onShowFileChooser(view: WebView, callback: ValueCallback<Array<Uri>>, params: WebChromeClient.FileChooserParams): Boolean {
+            fileCb?.onReceiveValue(null)
+            fileCb = callback
+            val types = params.acceptTypes?.filter { it.isNotBlank() }?.toTypedArray().orEmpty()
+            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = if (types.size == 1) types[0] else "*/*"
+                if (types.size > 1) putExtra(Intent.EXTRA_MIME_TYPES, types)
+                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, params.mode == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE)
             }
-            override fun onFullScreen(session: GeckoSession, fullScreen: Boolean) {
-                isFullScreen = fullScreen
-                if (fullScreen) focusPage()
-            }
-            override fun onCrash(session: GeckoSession) = recoverSession("crashed")
-            override fun onKill(session: GeckoSession) = recoverSession("was stopped by Android (low memory)")
+            runCatching {
+                bridge.pickFiles(Intent.createChooser(intent, "Choose file")) { uris -> fileCb?.onReceiveValue(uris); fileCb = null }
+            }.onFailure { fileCb?.onReceiveValue(null); fileCb = null }
+            return true
         }
-        session.progressDelegate = object : GeckoSession.ProgressDelegate {
-            override fun onPageStart(session: GeckoSession, url: String) {
-                progress = 0; loading = true
-                // New page: bank the last page's blocked count into the session total and start over.
-                ui.removeCallbacks(captureRunnable)
-                ui.removeCallbacks(blockedNotice)
-                sessionBase += pageMax
-                pageMax = 0; ubBlocked = 0; etpBlocked = 0
-                blockedNow = 0; blockedSession = sessionBase
-            }
-            override fun onProgressChange(session: GeckoSession, progress: Int) { this@BrowserController.progress = progress }
-            @ExperimentalGeckoViewApi
-            override fun onPageStop(session: GeckoSession, success: Boolean) {
-                loading = false
-                if (success) {
-                    session.sessionPageExtractor.getPageMetadata().accept { m -> readerable = m?.isReaderable ?: false }
-                    rememberRecent()
-                    scheduleCapture()
-                    if (!hintsShown && !atHome) {
-                        hintsShown = true; showHints = true
-                        ui.postDelayed({ showHints = false }, 7000L)
-                    }
-                    noticeFor = this@BrowserController.url
-                    ui.removeCallbacks(blockedNotice)
-                    ui.postDelayed(blockedNotice, 2200L)
-                } else readerable = false
-            }
-        }
-        session.scrollDelegate = object : GeckoSession.ScrollDelegate {
-            override fun onScrollChanged(session: GeckoSession, scrollX: Int, scrollY: Int) { pageScrollY = scrollY }
-        }
-        session.promptDelegate = promptDelegate()
-        session.permissionDelegate = permissionDelegate()
-        // Gecko's own tracker blocking (Strict protection). uBlock's count arrives through attachBlocker().
-        session.setContentBlockingDelegate(object : ContentBlocking.Delegate {
-            override fun onContentBlocked(session: GeckoSession, event: ContentBlocking.BlockEvent) {
-                if (event.isBlocking) { etpBlocked++; schedulePublish() }
-            }
-        })
     }
 
     // ------------------------------------------------------------------
@@ -533,12 +953,7 @@ class BrowserController(
 
     private val crashTimes = ArrayDeque<Long>()
 
-    /**
-     * After onCrash / onKill Gecko has already CLOSED the session, so session.reload() does nothing and
-     * the page stays blank (or the app looks frozen). The session has to be opened again first.
-     * If the same thing happens 3 times in a minute we stop retrying the page and go home, so a page
-     * that is too heavy for the device cannot trap the app in a crash loop.
-     */
+    /** A WebView whose renderer is gone cannot be reused: build a new one and reload. Three crashes in a minute goes home. */
     private fun recoverSession(why: String) {
         loading = false
         val now = SystemClock.uptimeMillis()
@@ -546,10 +961,7 @@ class BrowserController(
         while (crashTimes.isNotEmpty() && now - crashTimes.first() > 60_000L) crashTimes.removeFirst()
         val looping = crashTimes.size >= 3
         val target = if (looping || !url.startsWith("http")) homeTarget() else url
-        ui.post {
-            runCatching { if (!session.isOpen) session.open(runtime) }
-            session.loadUri(target)
-        }
+        ui.post { rebuildWeb(target) }
         if (looping) {
             crashTimes.clear()
             notify(NoteKind.WARNING, "This page keeps crashing", "Went home. Try Mobile site or Reader view.", Sym.Refresh, 6000L)
@@ -586,41 +998,9 @@ class BrowserController(
     // Ads and trackers blocked, page previews, recent pages
     // ------------------------------------------------------------------
 
-    /**
-     * uBlock Origin shows how many requests it blocked as the text on its toolbar button. Nothing
-     * draws that button here, so this reads the text for the current tab and counts with it.
-     */
-    fun attachBlocker(ext: WebExtension) {
-        val d = object : WebExtension.ActionDelegate {
-            override fun onBrowserAction(extension: WebExtension, session: GeckoSession?, action: WebExtension.Action) {
-                if (session == null) return // the default (not per-tab) action carries no count
-                ubBlocked = parseBadge(action.badgeText)
-                schedulePublish()
-            }
-        }
-        runCatching { session.webExtensionController.setActionDelegate(ext, d) }
-    }
-
-    /** "12" -> 12, "1.2k" -> 1200, "" -> 0. */
-    private fun parseBadge(text: String?): Int {
-        val t = text?.trim()?.lowercase().orEmpty()
-        return when {
-            t.isEmpty() -> 0
-            t.endsWith("k") -> ((t.dropLast(1).toDoubleOrNull() ?: 0.0) * 1000).toInt()
-            t.endsWith("m") -> ((t.dropLast(1).toDoubleOrNull() ?: 0.0) * 1_000_000).toInt()
-            else -> t.toIntOrNull() ?: 0
-        }
-    }
-
-    /** Counts can change many times a second while a page loads; publish at most every 350 ms. */
-    private fun schedulePublish() {
-        if (publishPending) return
-        publishPending = true
-        ui.postDelayed({ publishPending = false; publishBlocked() }, 350L)
-    }
 
     private fun publishBlocked() {
-        val total = ubBlocked + etpBlocked
+        val total = blockedReq.get()
         pageMax = max(pageMax, total)
         blockedNow = pageMax
         blockedSession = sessionBase + pageMax
@@ -644,35 +1024,36 @@ class BrowserController(
     private val captureRunnable = Runnable { captureNow() }
 
     /** Takes a preview a moment after the page settles (images and fonts need a beat to draw). */
-    fun scheduleCapture(delayMs: Long = 1500L) {
-        // On low-RAM TVs the automatic screenshot is what pushed heavy pages (GitHub) over the edge: it
-        // grabs a full-resolution frame right when the page is at its largest. Previews still happen
-        // when the menu opens or a page is bookmarked.
-        if (!thumbsEnabled || lowRam) return
+    fun scheduleCapture(delayMs: Long = 3500L) {
+        if (!thumbsEnabled || Build.VERSION.SDK_INT < 26) return
         ui.removeCallbacks(captureRunnable)
         ui.postDelayed(captureRunnable, delayMs)
     }
 
-    /** Snapshot of the visible page. Ordinary pages stay in memory; bookmarked pages are also saved. */
+    /**
+     * Snapshot of the visible page, taken with PixelCopy: the GPU copies the finished frame in the background.
+     * (The old version drew the whole WebView into a bitmap on the UI thread, which froze the page and made it
+     * flash about a second after every load.) Only runs when nothing is on top of the page and the pointer is idle.
+     */
+    @android.annotation.SuppressLint("NewApi")
     fun captureNow() {
-        if (!thumbsEnabled || atHome || isFullScreen || systemLowOnMemory()) return
-        val gv = geckoView ?: return
+        if (!thumbsEnabled || Build.VERSION.SDK_INT < 26 || atHome || isFullScreen || overlay != null || prompt != null) return
+        if (heldKeys.isNotEmpty() || loading || systemLowOnMemory()) return
+        val gv = web
         if (gv.width <= 0 || gv.height <= 0) return
         val u = url
         if (!u.startsWith("http")) return
         runCatching {
-            gv.capturePixels().accept({ shot ->
-                if (shot != null) {
-                    if (u == url) {
-                        thumbs.put(u, shot, isBookmarkedUrl(u))
-                    } else if (!shot.isRecycled) {
-                        runCatching { shot.recycle() }
-                    }
-                }
-            }, { })
-        }.onFailure {
-            // Ignore capture failure under memory pressure
-        }
+            val loc = IntArray(2)
+            gv.getLocationInWindow(loc)
+            val bmp = Bitmap.createBitmap(gv.width / 2, gv.height / 2, Bitmap.Config.ARGB_8888)
+            val src = android.graphics.Rect(loc[0], loc[1], loc[0] + gv.width, loc[1] + gv.height)
+            pointer.alpha = 0f   // keep the pointer out of the picture (restored right after)
+            android.view.PixelCopy.request(activity.window, src, bmp, { result ->
+                pointer.alpha = 1f
+                if (result == android.view.PixelCopy.SUCCESS && u == url) thumbs.put(u, bmp, isBookmarkedUrl(u)) else bmp.recycle()
+            }, ui)
+        }.onFailure { pointer.alpha = 1f }
     }
 
     private fun rememberRecent() {
@@ -745,92 +1126,8 @@ class BrowserController(
 
     fun removeCursor(img: CursorImage) {
         cursorLib.remove(img)
-        if (cursorId == img.id) setCursor("arrow_pulse")
+        if (cursorId == img.id) setCursor("")
         notify(NoteKind.INFO, "Cursor removed", img.name, Sym.DeleteOutline)
-    }
-
-    private fun promptDelegate() = object : GeckoSession.PromptDelegate {
-        override fun onAlertPrompt(session: GeckoSession, p: GeckoSession.PromptDelegate.AlertPrompt):
-            GeckoResult<GeckoSession.PromptDelegate.PromptResponse>? {
-            val r = GeckoResult<GeckoSession.PromptDelegate.PromptResponse>()
-            prompt = PromptRequest.Alert(p.title, p.message) { prompt = null; r.complete(p.dismiss()) }
-            return r
-        }
-
-        override fun onButtonPrompt(session: GeckoSession, p: GeckoSession.PromptDelegate.ButtonPrompt):
-            GeckoResult<GeckoSession.PromptDelegate.PromptResponse>? {
-            val r = GeckoResult<GeckoSession.PromptDelegate.PromptResponse>()
-            prompt = PromptRequest.Confirm(p.title, p.message) { ok ->
-                prompt = null
-                r.complete(if (ok) p.confirm(GeckoSession.PromptDelegate.ButtonPrompt.Type.POSITIVE) else p.dismiss())
-            }
-            return r
-        }
-
-        override fun onTextPrompt(session: GeckoSession, p: GeckoSession.PromptDelegate.TextPrompt):
-            GeckoResult<GeckoSession.PromptDelegate.PromptResponse>? {
-            val r = GeckoResult<GeckoSession.PromptDelegate.PromptResponse>()
-            prompt = PromptRequest.TextInput(p.title, p.message, p.defaultValue ?: "") { text ->
-                prompt = null
-                r.complete(if (text != null) p.confirm(text) else p.dismiss())
-            }
-            return r
-        }
-
-        override fun onPopupPrompt(session: GeckoSession, p: GeckoSession.PromptDelegate.PopupPrompt):
-            GeckoResult<GeckoSession.PromptDelegate.PromptResponse>? =
-            GeckoResult.fromValue(p.confirm(AllowOrDeny.DENY))
-
-        override fun onFilePrompt(session: GeckoSession, p: GeckoSession.PromptDelegate.FilePrompt):
-            GeckoResult<GeckoSession.PromptDelegate.PromptResponse>? {
-            val r = GeckoResult<GeckoSession.PromptDelegate.PromptResponse>()
-            val mime = p.mimeTypes?.takeIf { it.isNotEmpty() } ?: arrayOf("*/*")
-            val multiple = p.type == GeckoSession.PromptDelegate.FilePrompt.Type.MULTIPLE
-            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = if (mime.size == 1) mime[0] else "*/*"
-                if (mime.size > 1) putExtra(Intent.EXTRA_MIME_TYPES, mime)
-                putExtra(Intent.EXTRA_ALLOW_MULTIPLE, multiple)
-            }
-            runCatching {
-                bridge.pickFiles(Intent.createChooser(intent, "Choose file")) { uris ->
-                    when {
-                        uris.isNullOrEmpty() -> r.complete(p.dismiss())
-                        multiple -> r.complete(p.confirm(activity, uris))
-                        else -> r.complete(p.confirm(activity, uris[0]))
-                    }
-                }
-            }.onFailure { r.complete(p.dismiss()) }
-            return r
-        }
-    }
-
-    private fun permissionDelegate() = object : GeckoSession.PermissionDelegate {
-        override fun onAndroidPermissionsRequest(
-            session: GeckoSession, permissions: Array<out String>?, callback: GeckoSession.PermissionDelegate.Callback
-        ) {
-            val needed = permissions?.filter {
-                ContextCompat.checkSelfPermission(activity, it) != PackageManager.PERMISSION_GRANTED
-            } ?: emptyList()
-            if (needed.isEmpty()) { callback.grant(); return }
-            bridge.requestPermissions(needed.toTypedArray()) { granted -> if (granted) callback.grant() else callback.reject() }
-        }
-
-        override fun onContentPermissionRequest(session: GeckoSession, perm: GeckoSession.PermissionDelegate.ContentPermission): GeckoResult<Int>? =
-            GeckoResult.fromValue(GeckoSession.PermissionDelegate.ContentPermission.VALUE_DENY)
-
-        override fun onMediaPermissionRequest(
-            session: GeckoSession, uri: String,
-            video: Array<out GeckoSession.PermissionDelegate.MediaSource>?,
-            audio: Array<out GeckoSession.PermissionDelegate.MediaSource>?,
-            callback: GeckoSession.PermissionDelegate.MediaCallback
-        ) {
-            val host = runCatching { Uri.parse(uri).host }.getOrNull() ?: uri
-            prompt = PromptRequest.Permission(host) { allow ->
-                prompt = null
-                if (allow) callback.grant(video?.firstOrNull(), audio?.firstOrNull()) else callback.reject()
-            }
-        }
     }
 
     // ------------------------------------------------------------------
@@ -838,12 +1135,15 @@ class BrowserController(
     // ------------------------------------------------------------------
 
     /** True while Compose should own the keys: a page/menu/dialog is open, the home screen is showing, or the toolbar has focus. */
-    private val uiOwnsKeys: Boolean get() = overlay != null || prompt != null || atHome || chromeFocused
+    private val uiOwnsKeys: Boolean get() = overlay != null || prompt != null || atHome || chromeFocused || findOpen || promo != null
 
     fun handleKey(event: KeyEvent): Boolean {
         val down = event.action == KeyEvent.ACTION_DOWN
         val first = down && event.repeatCount == 0
-        if (!down && heldKeys.remove(event.keyCode)) return true
+        if (!down && heldKeys.remove(event.keyCode)) {
+            if (heldKeys.isEmpty()) { ui.removeCallbacks(snapRequest); ui.postDelayed(snapRequest, 260L) }
+            return true
+        }
         if (prompt != null) return false
 
         if (event.isCtrlPressed) {
@@ -852,6 +1152,14 @@ class BrowserController(
                 KeyEvent.KEYCODE_B -> { if (first) openPage(Page.BOOKMARKS); return true }
                 KeyEvent.KEYCODE_L -> { if (first) focusToolbar(); return true }
                 KeyEvent.KEYCODE_R -> { if (first) reload(); return true }
+                KeyEvent.KEYCODE_F -> { if (first) openFind(); return true }
+                KeyEvent.KEYCODE_C -> if (event.isShiftPressed) { if (first) copyLink(); return true }
+            }
+        }
+        if (event.isAltPressed && !uiOwnsKeys) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_DPAD_LEFT -> { if (first) back(); return true }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> { if (first) forward(); return true }
             }
         }
         when (event.keyCode) {
@@ -866,23 +1174,27 @@ class BrowserController(
             KeyEvent.KEYCODE_BOOKMARK -> { if (first) openPage(Page.BOOKMARKS); return true }
             KeyEvent.KEYCODE_SEARCH -> { if (first) focusToolbar(); return true }
             KeyEvent.KEYCODE_F5 -> { if (first) reload(); return true }
+            KeyEvent.KEYCODE_F6 -> { if (first) focusToolbar(); return true }
         }
+        if (isFullScreen && overlay == null) return fullscreenKey(event)
         if (uiOwnsKeys) return false
 
         when (event.keyCode) {
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN -> { if (down) scrollPageBy(viewH * 0.85f); return true }
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP -> { if (down) scrollPageBy(-viewH * 0.85f); return true }
+            KeyEvent.KEYCODE_MOVE_HOME -> { if (first) web.pageUp(true); return true }
+            KeyEvent.KEYCODE_MOVE_END -> { if (first) web.pageDown(true); return true }
         }
         val dpad = event.keyCode == KeyEvent.KEYCODE_DPAD_UP || event.keyCode == KeyEvent.KEYCODE_DPAD_DOWN ||
             event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT || event.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT
         if (dpad && !pointerOn) {
-            // Pointer off: the page's own focus navigation (Wishy Core) moves between links.
+            // Pointer off: the page's own focus navigation (assets/wishy.js) moves between links.
             if (first) {
                 val dir = when (event.keyCode) {
                     KeyEvent.KEYCODE_DPAD_UP -> "Up"; KeyEvent.KEYCODE_DPAD_DOWN -> "Down"
                     KeyEvent.KEYCODE_DPAD_LEFT -> "Left"; else -> "Right"
                 }
-                corePort?.postMessage(JSONObject().apply { put("type", "navigate"); put("direction", dir) })
+                web.evaluateJavascript("window.__wyNav&&__wyNav('$dir')", null)
             }
             return true
         }
@@ -918,6 +1230,7 @@ class BrowserController(
         viewW = w; viewH = h
         if (!cursorPlaced && w > 0f) { cursorX = w / 2f; cursorY = h / 2f; cursorPlaced = true }
         cursorX = cursorX.coerceIn(0f, w); cursorY = cursorY.coerceIn(0f, h)
+        placeCursor()
     }
 
     private val density get() = activity.resources.displayMetrics.density
@@ -928,9 +1241,9 @@ class BrowserController(
             val now = SystemClock.uptimeMillis()
             val dt = (now - lastTickMs).coerceIn(1L, 48L) / 1000f
             lastTickMs = now
-            val t = ((now - holdStartMs) / 900f).coerceIn(0f, 1f)
+            val t = ((now - holdStartMs) / 700f).coerceIn(0f, 1f)
             val eased = t * t * (3f - 2f * t)
-            val speed = (320f + (1500f - 320f) * eased) * density
+            val speed = (520f + (1900f - 520f) * eased) * density
             var dx = 0f; var dy = 0f
             for (k in heldKeys) when (k) {
                 KeyEvent.KEYCODE_DPAD_UP -> dy -= 1f
@@ -962,40 +1275,22 @@ class BrowserController(
     fun stopCursor() {
         heldKeys.clear()
         activity.window.decorView.removeCallbacks(ticker)
-        if (cursorPlaced) {
-            corePort?.postMessage(JSONObject().apply { put("type", "find_closest"); put("x", cursorX); put("y", cursorY); put("w", viewW) })
-        }
     }
 
     private var lastScrollPostMs = 0L
 
     private fun moveCursorBy(dx: Float, dy: Float) {
         val edge = 64f * density
-        if (dy > 0f && cursorY >= viewH - edge) {
-            val now = SystemClock.uptimeMillis()
-            if (now - lastScrollPostMs >= 24L) {
-                lastScrollPostMs = now
-                scrollPageBy(dy * 1.6f)
-            }
-        } else if (dy < 0f && cursorY <= edge && pageScrollY > 0) {
-            val now = SystemClock.uptimeMillis()
-            if (now - lastScrollPostMs >= 24L) {
-                lastScrollPostMs = now
-                scrollPageBy(dy * 1.6f)
-            }
-        } else {
-            cursorY = (cursorY + dy).coerceIn(0f, viewH)
-        }
+        var ny = dy
+        // At the top/bottom edge the pointer stays put and the page scrolls instead.
+        if (dy > 0f && cursorY >= viewH - edge) { scrollPageBy(dy * 1.6f); ny = 0f }
+        else if (dy < 0f && cursorY <= edge && pageScrollY > 0) { scrollPageBy(dy * 1.6f); ny = 0f }
+        cursorY = (cursorY + ny).coerceIn(0f, viewH)
         cursorX = (cursorX + dx).coerceIn(0f, viewW)
-
-        val now = SystemClock.uptimeMillis()
-        if (now - lastClosestPostMs >= 150L) {
-            lastClosestPostMs = now
-            corePort?.postMessage(JSONObject().apply { put("type", "find_closest"); put("x", cursorX); put("y", cursorY); put("w", viewW) })
-        }
+        placeCursor()
     }
 
-    // Magnetic snap to the nearest link when the pointer is idle (Wishy Core tells us where).
+    // Magnetic snap to the nearest link when the pointer is idle (assets/wishy.js tells us where).
     private var snapTarget: Pair<Float, Float>? = null
     private val snapper = object : Runnable {
         override fun run() {
@@ -1004,8 +1299,9 @@ class BrowserController(
             val k = 0.35f
             cursorX += (t.first - cursorX) * k
             cursorY += (t.second - cursorY) * k
+            placeCursor()
             if (kotlin.math.abs(t.first - cursorX) < 0.6f && kotlin.math.abs(t.second - cursorY) < 0.6f) {
-                cursorX = t.first; cursorY = t.second; snapTarget = null
+                cursorX = t.first; cursorY = t.second; snapTarget = null; placeCursor()
             } else activity.window.decorView.postOnAnimation(this)
         }
     }
@@ -1018,18 +1314,50 @@ class BrowserController(
     }
 
     private fun scrollPageBy(px: Float) {
-        session.panZoomController.scrollBy(ScreenLength.fromPixels(0.0), ScreenLength.fromPixels(px.toDouble()))
+        scrollRemainder += px
+        val whole = scrollRemainder.toInt()
+        if (whole != 0) { scrollRemainder -= whole; web.scrollBy(0, whole) }
+    }
+
+    /** Asks the page for the nearest link; at most one question in flight so the UI thread never queues up work. */
+    private fun requestClosest() {
+        if (snapBusy || atHome) return
+        snapBusy = true
+        web.evaluateJavascript("window.__wyClosest&&__wyClosest($cursorX,$cursorY,$viewW)") { r ->
+            snapBusy = false
+            if (r.isNullOrEmpty() || r == "null") return@evaluateJavascript
+            runCatching {
+                val o = JSONObject(r)
+                snapCursorTo(o.getDouble("x").toFloat(), o.getDouble("y").toFloat())
+            }
+        }
+    }
+
+    /** Full-screen video: OK plays/pauses, Left/Right seek 10 s. Everything else goes to the system. */
+    private fun fullscreenKey(event: KeyEvent): Boolean {
+        if (event.action != KeyEvent.ACTION_DOWN) return false
+        val js = when (event.keyCode) {
+            KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_BUTTON_A ->
+                "var v=document.querySelector('video');if(v){v.paused?v.play():v.pause()}"
+            KeyEvent.KEYCODE_DPAD_LEFT -> "var v=document.querySelector('video');if(v)v.currentTime-=10"
+            KeyEvent.KEYCODE_DPAD_RIGHT -> "var v=document.querySelector('video');if(v)v.currentTime+=10"
+            else -> return false
+        }
+        web.evaluateJavascript("(function(){$js})()", null)
+        return true
     }
 
     private fun clickAtCursor() {
         snapTarget?.let { (x, y) ->
             cursorX = x
             cursorY = y
+            placeCursor()
             snapTarget = null
             activity.window.decorView.removeCallbacks(snapper)
         }
         clickTick++
-        val gv = geckoView ?: return
+        pointer.pulse()
+        val gv = web
         val t = SystemClock.uptimeMillis()
         val down = MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, cursorX, cursorY, 0)
         val up = MotionEvent.obtain(t, t + 50, MotionEvent.ACTION_UP, cursorX, cursorY, 0)
@@ -1040,12 +1368,44 @@ class BrowserController(
         down.recycle(); up.recycle()
     }
 
-    fun onPause() = stopCursor()
+    fun onPause() { stopCursor(); webRef?.onPause() }
+
+    fun onResume() { webRef?.onResume() }
 
     fun onDestroy() {
         stopCursor()
         ui.removeCallbacksAndMessages(null)
-        session.close()
-        geckoView = null
+        fileCb?.onReceiveValue(null); fileCb = null
+        customView?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        webRef?.let {
+            runCatching {
+                it.stopLoading()
+                if (has(Opt.WIPE_EXIT)) { it.clearCache(true); it.clearHistory(); it.clearFormData() }
+                (it.parent as? ViewGroup)?.removeView(it); it.destroy()
+            }
+        }
+        wipePrivateData()
+        webRef = null
+    }
+
+    // Last on purpose: the clients above are property initialisers and must exist before the first WebView is built.
+    init {
+        wipePrivateData()
+        webRef = createWeb()
+        thumbs.prune(bookmarks.map { it.url })
+        ui.postDelayed({ startPromos() }, 3500L)
+    }
+
+    private companion object {
+        /** A page worth the reader view: it has an <article> or <main> with real text. */
+        const val READABLE_JS = "(function(){var a=document.querySelector('article')||document.querySelector('main');return !!a&&a.innerText.length>1500})()"
+
+        /** Rebuilds the page as plain large text on a dark background (done in the page, nothing is sent anywhere). */
+        const val READER_JS = "(function(){var a=document.querySelector('article')||document.querySelector('main');if(!a)return;" +
+            "var c=a.cloneNode(true);c.querySelectorAll('script,style,iframe,nav,aside,form,button,svg,noscript,video,[aria-hidden=true]').forEach(function(e){e.remove()});" +
+            "var t=document.title;document.head.innerHTML='<meta name=viewport content=\"width=device-width,initial-scale=1\"><style>html{background:#111}" +
+            "body{max-width:46em;margin:0 auto;padding:6vh 5vw;font:1.35em/1.7 Georgia,serif;color:#eee}a{color:#7cc4ff}img{max-width:100%;height:auto}" +
+            "h1,h2,h3{line-height:1.25;font-family:sans-serif}</style>';document.body.innerHTML='';var h=document.createElement('h1');h.textContent=t;" +
+            "document.body.appendChild(h);document.body.appendChild(c);window.scrollTo(0,0)})()"
     }
 }

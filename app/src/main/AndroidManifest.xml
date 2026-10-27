@@ -49,7 +49,13 @@
         android:theme="@style/Theme.WishyBrowser"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
+        android:usesCleartextTraffic="true"
         android:hardwareAccelerated="true">
+
+        <!-- Safe Browsing sends hashes of visited sites to Google. Off. -->
+        <meta-data android:name="android.webkit.WebView.EnableSafeBrowsing" android:value="false" />
+        <!-- No metrics upload from the system WebView. -->
+        <meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />
 
         <activity
             android:name=".MainActivity"

@@ -51,14 +51,14 @@ fun DeveloperPage(c: BrowserController) {
 private class Credit(val name: String, val role: String, val license: String, val url: String)
 
 private val CREDITS = listOf(
-    Credit("Mozilla GeckoView", "The browser engine", "MPL-2.0", "https://mozilla.github.io/geckoview/"),
-    Credit("uBlock Origin", "Ad and tracker blocking, by Raymond Hill", "GPL-3.0", "https://github.com/gorhill/uBlock"),
+    Credit("Android System WebView", "The browser engine (Chromium), already on your TV", "BSD-3-Clause", "https://www.chromium.org/"),
+    Credit("Wishy Browser (original)", "The Gecko-based version this one is rebuilt from", "GPL-3.0", "https://github.com/wishissue/WishyBrowser"),
     Credit("Orion Store", "Design inspiration and theme seed colours", "GPL-3.0", "https://github.com/RookieEnough/Orion-Store"),
     Credit("Jetpack Compose and Material 3", "The interface toolkit", "Apache-2.0", "https://developer.android.com/compose"),
     Credit("Material Color Utilities", "Generates the 45 colour themes", "Apache-2.0", "https://github.com/material-foundation/material-color-utilities"),
     Credit("Material Symbols", "Icons", "Apache-2.0", "https://fonts.google.com/icons"),
-    Credit("Bibata Cursor", "Open-source cursor pictures, by Abdulkaiz Khan", "GPL-3.0", "https://github.com/ful1e5/Bibata_Cursor"),
-    Credit("EasyList, EasyPrivacy, AdGuard filters", "Ad and tracker filter lists", "GPL-3.0 / CC BY-SA", "https://easylist.to/"),
+    Credit("Open-Source Cursor Collection", "Bibata, Capitaine, Phinger, Vimix and XCursor Pro packs", "LGPL / CC / GPL", "https://github.com/ful1e5/Bibata_Cursor"),
+    Credit("EasyPrivacy and Peter Lowe's ad server list", "Domains behind the built-in blocker", "GPL-3.0 / CC BY-SA", "https://easylist.to/"),
     Credit("Poppins", "Typeface, by Indian Type Foundry", "OFL-1.1", "https://fonts.google.com/specimen/Poppins"),
     Credit("TV Bro", "Inspired the D-pad pointer idea (no code used)", "GPL-3.0", "https://github.com/truefedex/tv-bro"),
 )

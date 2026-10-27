@@ -34,7 +34,9 @@ fun WishyApp(c: BrowserController) {
                 exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
             ) { HomeScreen(c) }
             Overlays(c)
+            FindBar(c, Modifier.align(androidx.compose.ui.Alignment.BottomCenter))
             PromptHost(c)
+            PromoHost(c)
             NotificationHost(c)
         }
       }

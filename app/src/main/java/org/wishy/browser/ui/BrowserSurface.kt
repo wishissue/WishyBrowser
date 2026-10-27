@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -54,7 +55,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import org.mozilla.geckoview.GeckoView
+import androidx.compose.runtime.key
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import androidx.compose.runtime.SideEffect
 import org.wishy.browser.BrowserController
 import org.wishy.browser.Page
 import kotlin.math.roundToInt
@@ -82,10 +86,21 @@ fun BrowserSurface(c: BrowserController) {
             Modifier.weight(1f).fillMaxWidth()
                 .onSizeChanged { c.onViewSized(it.width.toFloat(), it.height.toFloat()) }
         ) {
-            AndroidView(
-                factory = { ctx -> GeckoView(ctx).also { it.setSession(c.session); c.geckoView = it } },
-                modifier = Modifier.fillMaxSize()
-            )
+            // One native container holds the page AND the pointer, so the pointer is drawn by the view system
+            // right on top of the WebView. key(): if the renderer dies a new WebView is built and re-hosted here.
+            key(c.webGen) {
+                AndroidView(
+                    factory = { ctx ->
+                        FrameLayout(ctx).apply {
+                            (c.web.parent as? ViewGroup)?.removeView(c.web)
+                            (c.pointer.parent as? ViewGroup)?.removeView(c.pointer)
+                            addView(c.web, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                            addView(c.pointer, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                        }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
             androidx.compose.animation.AnimatedVisibility(
                 visible = c.loading && !showBar,
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 24.dp),
@@ -133,7 +148,7 @@ private fun Toolbar(c: BrowserController) {
                 )
                 TvIconButton(Sym.Home, "Home", { c.goHome() }, size = 48.dp)
                 SearchPill(
-                    display = prettyUrl(c.url), editText = c.url, placeholder = "Search or enter address",
+                    display = prettyUrl(c.url), editText = c.url, placeholder = "Search ${c.searchEngine.label} or enter address",
                     icon = if (c.url.startsWith("https://")) Sym.Lock else Sym.Search,
                     onSubmit = { c.open(it) }, focus = c.urlFocus, modifier = Modifier.weight(1f), height = 48.dp,
                     loading = c.loading
@@ -149,9 +164,10 @@ private fun Toolbar(c: BrowserController) {
                 TvIconButton(Sym.AdsClick, "Pointer", { c.togglePointer() }, selected = c.pointerOn, size = 48.dp)
                 TvIconButton(Sym.MoreVert, "Menu", { c.openPage(Page.MENU) }, size = 48.dp)
             }
-            if (c.loading) {
-                // Plain bar: the wavy Expressive one animates every frame, exactly while a heavy page is loading.
-                LinearProgressIndicator({ (c.progress / 100f).coerceIn(0.03f, 1f) }, Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 2.dp))
+            // Fixed-height slot: if the bar appeared and disappeared, the toolbar would change height and the WebView
+            // would be resized (and flash) at the start and end of every page load.
+            Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 2.dp).height(4.dp)) {
+                if (c.loading) LinearProgressIndicator({ (c.progress / 100f).coerceIn(0.03f, 1f) }, Modifier.fillMaxWidth())
             }
         }
     }
@@ -161,51 +177,23 @@ private fun Toolbar(c: BrowserController) {
 private fun prettyUrl(u: String): String =
     u.removePrefix("https://").removePrefix("http://").removePrefix("www.").trimEnd('/')
 
-/** The animated cursor plus a ripple where OK was pressed. Never intercepts touches. */
+/**
+ * Only tells the native [BrowserController.pointer] WHICH glyph to show and WHETHER to show it. Movement never goes
+ * through Compose, so a moving pointer causes no recomposition, no layout and no redraw of the page.
+ */
 @Composable
 private fun PointerOverlay(c: BrowserController) {
     val density = LocalDensity.current
-    val sizeDp = 38.dp * c.cursorScale
-    val sizePx = with(density) { sizeDp.toPx() }
+    val lib = LocalCursorLib.current
     val spec = c.cursorSpec
-    val boxW = with(density) { spec.boxW(sizeDp).toPx() }
-    val boxH = with(density) { spec.boxH(sizeDp).toPx() }
-    val ring = MaterialTheme.colorScheme.primary
-    val ripple = remember { Animatable(1f) }
-    LaunchedEffect(c.clickTick) {
-        if (c.clickTick > 0) { ripple.snapTo(0f); ripple.animateTo(1f, tween(450)) }
+    val sizePx = with(density) { (38.dp * c.cursorScale).toPx() }.roundToInt().coerceAtLeast(16)
+    val glyph = remember(spec.id, sizePx, lib) { renderCursor(spec, sizePx, lib) }
+    val visible = c.pointerVisible
+    SideEffect {
+        glyph?.let { c.pointer.setGlyph(it.bitmap, it.hotXpx, it.hotYpx) }
+        c.pointer.setShown(visible && glyph != null)
+        c.placeCursor()
     }
-    val r12 = with(density) { 12.dp.toPx() }
-    val r40 = with(density) { 40.dp.toPx() }
-    val sw = with(density) { 4.dp.toPx() }
-    Canvas(Modifier.fillMaxSize()) {
-        val p = ripple.value
-        if (p < 1f) drawCircle(ring.copy(alpha = 0.55f * (1f - p)), r12 + r40 * p, Offset(c.cursorX, c.cursorY), style = Stroke(sw))
-    }
-    // Calm pointer: fade it out a little when it has not moved for a few seconds.
-    var idle by remember { mutableStateOf(false) }
-    // cursorX/cursorY are read inside snapshotFlow, not passed as effect keys: keys are read during
-    // composition, which recomposed this whole overlay and restarted this coroutine on every frame the
-    // pointer moved, competing with the web page for the main thread.
-    LaunchedEffect(c.clickTick, c.pointerVisible) {
-        snapshotFlow { c.cursorX to c.cursorY }.collectLatest {
-            idle = false
-            delay(4000)
-            idle = true
-        }
-    }
-    val calm by animateFloatAsState(if (idle) 0.35f else 1f, tween(600), label = "calm")
-    AnimatedVisibility(
-        c.pointerVisible,
-        modifier = Modifier.alpha(calm).offset {
-            IntOffset(
-                (c.cursorX - spec.hotX * boxW).roundToInt(),
-                (c.cursorY - spec.hotY * boxH).roundToInt()
-            )
-        },
-        enter = fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()) + scaleIn(MaterialTheme.motionScheme.fastSpatialSpec(), 0.6f),
-        exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) + scaleOut(MaterialTheme.motionScheme.fastSpatialSpec(), 0.6f),
-    ) { CursorGlyph(spec, sizeDp, animate = !idle) } // an idle pointer stops animating: no 60 fps redraw while you read
 }
 
 /** Remote hints, shown for a few seconds after the first page loads. */

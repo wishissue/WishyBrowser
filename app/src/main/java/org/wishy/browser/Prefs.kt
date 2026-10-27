@@ -15,7 +15,7 @@ class Prefs(context: Context) {
         set(value) = sp.edit().putString("home_url", value).apply()
 
     var desktopMode: Boolean
-        get() = sp.getBoolean("desktop_mode", false)
+        get() = sp.getBoolean("desktop_mode", true)
         set(value) = sp.edit().putBoolean("desktop_mode", value).apply()
 
     /** 1.0 = normal. Larger values make page text bigger for couch-distance reading. */
@@ -38,13 +38,13 @@ class Prefs(context: Context) {
         set(value) = sp.edit().putString("theme_mode", value).apply()
 
     var cursorId: String
-        get() = sp.getString("cursor_id", "arrow_pulse") ?: "arrow_pulse"
+        get() = sp.getString("cursor_id", "") ?: ""
         set(value) = sp.edit().putString("cursor_id", value).apply()
 
     /** Turns every animation into an instant change (for very weak hardware). */
     var reduceMotion: Boolean
-        // On by default for weak TVs (about 2 GB RAM or less): fewer animations while a heavy page loads.
-        get() = sp.getBoolean("reduce_motion", isWeakDevice(appCtx))
+        // On by default: fewer animations, faster page loads on weak TVs.
+        get() = sp.getBoolean("reduce_motion", true)
         set(value) = sp.edit().putBoolean("reduce_motion", value).apply()
 
     /** Timestamp of the newest process exit already reported by ExitReport. */
@@ -76,6 +76,38 @@ class Prefs(context: Context) {
     var customCursors: String
         get() = sp.getString("custom_cursors", "[]") ?: "[]"
         set(value) = sp.edit().putString("custom_cursors", value).apply()
+
+    /** Id of the search engine typed words go to (see SearchEngine). DuckDuckGo until the user picks another. */
+    var searchEngine: String
+        get() = sp.getString("search_engine", SearchEngine.DUCKDUCKGO.id) ?: SearchEngine.DUCKDUCKGO.id
+        set(value) = sp.edit().putString("search_engine", value).apply()
+
+    /** First time the app was opened; the donation reminders count from here. */
+    var firstRunAt: Long
+        get() = sp.getLong("first_run_at", 0L)
+        set(value) = sp.edit().putLong("first_run_at", value).apply()
+
+    /** When the coffee reminder was last shown (0 = never). */
+    var lastDonateAsk: Long
+        get() = sp.getLong("last_donate_ask", 0L)
+        set(value) = sp.edit().putLong("last_donate_ask", value).apply()
+
+    /** Ask GitHub once a day whether a newer version exists. Only informs; nothing is downloaded. */
+    var updateCheck: Boolean
+        get() = sp.getBoolean("update_check", true)
+        set(value) = sp.edit().putBoolean("update_check", value).apply()
+
+    var lastUpdateCheck: Long
+        get() = sp.getLong("last_update_check", 0L)
+        set(value) = sp.edit().putLong("last_update_check", value).apply()
+
+    /** The newest version the user was already told about, so each version is announced once. */
+    var lastUpdateNotified: String
+        get() = sp.getString("last_update_notified", "") ?: ""
+        set(value) = sp.edit().putString("last_update_notified", value).apply()
+
+    fun opt(o: Opt): Boolean = sp.getBoolean("opt_" + o.key, o.default)
+    fun setOpt(o: Opt, value: Boolean) = sp.edit().putBoolean("opt_" + o.key, value).apply()
 
     companion object {
         /** About 2 GB of RAM or less. */

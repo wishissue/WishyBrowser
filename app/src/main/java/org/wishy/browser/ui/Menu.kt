@@ -83,7 +83,7 @@ fun MenuSheet(c: BrowserController) {
                             )
                             Column(Modifier.padding(start = 14.dp)) {
                                 Text("Wishy Browser", style = MaterialTheme.typography.titleLargeEmphasized)
-                                Text("Version 3.1", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text("Version 4.1", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -113,6 +113,18 @@ fun MenuSheet(c: BrowserController) {
                             FeatureTile(Sym.ShieldFilled, "Shields", if (Shields.blockerActive) "${c.blockedSession} blocked" else "Check blocker") { c.openPage(Page.SHIELDS) },
                             if (c.readerable) FeatureTile(Sym.MenuBook, "Reader view", "Clean text") { c.closeAll(); c.openReader() }
                             else FeatureTile(Sym.Settings, "Settings", "Site, text, home") { c.openPage(Page.SETTINGS) },
+                        )
+                    }
+                    item {
+                        TileRow(
+                            FeatureTile(Sym.ShieldLockFilled, "Privacy", "${c.protectionsOn} of ${c.protectionsTotal} on  \u00B7  ${c.searchEngine.label}") { c.openPage(Page.PRIVACY) },
+                            FeatureTile(Sym.DeleteSweep, "Clear data", "Cookies, cache, history") { c.clearBrowsingData(); c.closeAll() },
+                        )
+                    }
+                    item {
+                        TileRow(
+                            FeatureTile(Sym.Search, "Find in page", "Ctrl+F") { c.openFind() },
+                            FeatureTile(Sym.ContentCopy, "Copy link", "To the clipboard") { c.copyLink() },
                         )
                     }
                     item { SectionLabel("Make it yours") }

@@ -14,6 +14,7 @@ import org.wishy.browser.ui.pages.CreditsPage
 import org.wishy.browser.ui.pages.CursorsPage
 import org.wishy.browser.ui.pages.DeveloperPage
 import org.wishy.browser.ui.pages.DonatePage
+import org.wishy.browser.ui.pages.PrivacyPage
 import org.wishy.browser.ui.pages.SettingsPage
 import org.wishy.browser.ui.pages.ShieldsPage
 import org.wishy.browser.ui.pages.ThemesPage
@@ -37,6 +38,7 @@ fun Overlays(c: BrowserController) {
             Page.CURSORS -> CursorsPage(c)
             Page.SETTINGS -> SettingsPage(c)
             Page.SHIELDS -> ShieldsPage(c)
+            Page.PRIVACY -> PrivacyPage(c)
             Page.NOTIFICATIONS -> NotificationsPage(c)
             Page.DEVELOPER -> DeveloperPage(c)
             Page.CREDITS -> CreditsPage(c)

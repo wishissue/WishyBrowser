@@ -94,3 +94,6 @@ content" requirements, this project does **not** depend on:
 - **Colour themes**: generated with `@material/material-color-utilities` (Apache-2.0).
 - **Approach**: the build setup (Compose BOM, Material 3 1.5 Expressive, optIn flags) and the palette
   generator were adapted from Orion Store (GPL-3.0, RookieEnough/Orion-Store).
+
+## androidx.webkit
+- **License**: Apache License 2.0. **Use**: `addDocumentStartJavaScript` so the privacy layer (`assets/privacy.js`) runs before page scripts.

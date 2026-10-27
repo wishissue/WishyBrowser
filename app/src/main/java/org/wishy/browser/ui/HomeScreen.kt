@@ -142,7 +142,7 @@ fun HomeScreen(c: BrowserController) {
                         Clock(Modifier.reveal(0))
                         Spacer(Modifier.height(22.dp))
                         SearchPill(
-                            display = "", editText = "", placeholder = "Search or type an address",
+                            display = "", editText = "", placeholder = "Search ${c.searchEngine.label} or type an address",
                             icon = Sym.Search, onSubmit = { c.open(it) }, focus = c.urlFocus,
                             modifier = Modifier.widthIn(max = 780.dp).reveal(1), height = 68.dp,
                             loading = c.loading
