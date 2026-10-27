@@ -10,14 +10,24 @@ Browse the web on your TV with remote-friendly controls, a clean interface, and 
 <p>
   <a href="https://github.com/wishissue/WishyBrowser/releases">Download</a> ·
   <a href="https://github.com/wishissue/WishyBrowser/issues">Report a bug</a> ·
-  <a href="https://github.com/wishissue/WishyBrowser">Source code</a>
+  <a href="https://github.com/wishissue/WishyBrowser">Source code</a>.
+  <a href="https://wishissue.github.io/wishy-apps/donate.html">Donate</a>
 </p>
 
+
+<div align="center">
+
+<a href="https://wishissue.github.io/wishy-apps/donate.html">
+  <img src="https://img.shields.io/badge/%E2%99%A5%20SUPPORT%20WISHY%20BROWSER-FF4D8D?style=for-the-badge&labelColor=7C3AED" alt="Support Wishy Browser" width="420">
+</a>
+
+</div>
 
 
 ![Android TV](https://img.shields.io/badge/Platform-Android%20TV-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Made%20with-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
 ![Open Source](https://img.shields.io/badge/Open%20Source-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
+
 
 </div>
 
