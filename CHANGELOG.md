@@ -22,3 +22,15 @@
 - Desktop site and Reduce motion are on by default for new installs.
 - New: "new version" card. Once a day Wishy asks the public GitHub releases of wishissue/WishyBrowser for the latest tag and, if it is newer, shows one card with OK. Nothing is downloaded. Off switch: Settings > Updates. Publish releases with tags like v4.2.0.
 - New: "buy me a coffee" card, 1 month after first use and then every 3 months, with Buy me a coffee (donation page), Show QR code and Maybe later.
+
+# 4.2.0 - layouts and downloads
+- Toolbar position: top, bottom, left or right (Settings > Layout). Left and right use a column of icon buttons; the address opens as a sheet.
+- Full-screen mode: toolbar and system bars hidden. Bring the toolbar back by dragging in from the edge (touch), pushing the pointer against that edge, pressing SEARCH, or holding MENU. It floats over the page, so the page is never resized, and hides itself again.
+- Downloads: new download manager (OkHttp). Pause, resume (also after a dropped connection), cancel, retry, progress notification, saved to the Downloads folder. Needs your OK first (new privacy switch "Ask before downloading").
+- Download privacy: cookies are read at request time and never stored; each redirect only gets its own cookies; https-to-http redirects are refused; referrer and Global Privacy Control follow the existing switches; the list is wiped with "Wipe data at exit" and "Clear data".
+- Fixed: the pointer can now reach the bottom edge of a page that cannot scroll further.
+- Not yet: blob: downloads (files a page builds in memory), installing APKs from the browser.
+- UI aligned with the WishIssue design guidelines: Wishy Blue now uses the shared tokens (primary #1560D4 / #A8C8FF, background #E6F1FF / #080B12, cards one step off the background); Plus Jakarta Sans for the interface and Bagel Fat One for the app name (static Latin subsets, smaller than the old Poppins files).
+- Fixed: the home-screen clock and any text outside a card was black on dark themes; the default text colour now follows the theme.
+- Removed the gradient and the drifting shapes from the home screen, the gradient banner on update/donate cards, and the gradient on page-preview placeholders.
+- Home clock redesigned: larger time, system 12/24-hour setting, small AM/PM, date and greeting, updates on the minute.

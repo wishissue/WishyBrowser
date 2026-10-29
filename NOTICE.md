@@ -32,9 +32,9 @@ avoid pulling GPL-3.0 obligations onto this repo.
   GeckoView also brings in a few AndroidX support libraries and SnakeYAML
   (Apache-2.0) as its own dependencies.
 
-## Poppins typeface
+## Plus Jakarta Sans and Bagel Fat One typefaces
 - **License**: SIL Open Font License 1.1.
-- **Use**: the app's UI font (`res/font/poppins_*.ttf`).
+- **Use**: the app's UI font (`res/font/plusjakarta_*.ttf`, static Latin subsets) and the app-name font (`res/font/bagelfatone_regular.ttf`); both SIL OFL 1.1, see `OFL-PlusJakartaSans.txt`.
 
 ## Material Symbols / Material Icons glyphs
 - **License**: Apache License 2.0 (Google's Material Icons/Symbols set).

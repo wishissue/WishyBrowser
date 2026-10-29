@@ -68,9 +68,9 @@ class MainActivity : ComponentActivity(), ActivityBridge {
 
         setContent {
             val view = LocalView.current
-            LaunchedEffect(controller.isFullScreen) {
+            LaunchedEffect(controller.isFullScreen, controller.hideBar) {
                 val bars = WindowCompat.getInsetsController(window, view)
-                if (controller.isFullScreen) {
+                if (controller.isFullScreen || controller.hideBar) {
                     bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                     bars.hide(WindowInsetsCompat.Type.systemBars())
                 } else bars.show(WindowInsetsCompat.Type.systemBars())

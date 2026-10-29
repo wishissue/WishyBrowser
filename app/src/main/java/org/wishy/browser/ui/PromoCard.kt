@@ -92,17 +92,14 @@ fun PromoHost(c: BrowserController) {
     }
 }
 
-/** Gradient top with a big badge and a few soft circles. Still, so it costs nothing on weak TVs. */
+/** Flat tinted top with a badge. Still, so it costs nothing on weak TVs. */
 @Composable
 private fun Banner(icon: androidx.compose.ui.graphics.vector.ImageVector) {
     val cs = MaterialTheme.colorScheme
     Box(
-        Modifier.fillMaxWidth().height(170.dp).background(Brush.linearGradient(listOf(cs.primary, cs.tertiary))),
+        Modifier.fillMaxWidth().height(150.dp).background(cs.primaryContainer),
         contentAlignment = Alignment.Center
     ) {
-        Box(Modifier.offset(x = (-210).dp, y = (-34).dp).size(120.dp).background(Color.White.copy(alpha = 0.10f), CircleShape))
-        Box(Modifier.offset(x = 230.dp, y = 40.dp).size(150.dp).background(Color.White.copy(alpha = 0.08f), CircleShape))
-        Box(Modifier.offset(x = 150.dp, y = (-52).dp).size(44.dp).background(Color.White.copy(alpha = 0.14f), CircleShape))
         Box(
             Modifier.size(104.dp).clip(MaterialShapes.Cookie9Sided.toShape()).background(cs.surfaceContainerHigh),
             contentAlignment = Alignment.Center

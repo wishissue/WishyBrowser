@@ -26,19 +26,13 @@ fun DeveloperPage(c: BrowserController) {
     PageScaffold("Developer", { c.popPage() }) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                Row(Modifier.padding(bottom = 12.dp).reveal(0), verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painterResource(R.drawable.ic_cat_logo), null,
-                        Modifier.size(104.dp).clip(RoundedCornerShape(30.dp)).background(MaterialTheme.colorScheme.primaryContainer)
+                Column(Modifier.padding(bottom = 12.dp).reveal(0)) {
+                    Text("wishissue", style = MaterialTheme.typography.headlineLargeEmphasized)
+                    Text("Maker of Wishy Browser", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "A fast, private browser built for the big screen.",
+                        style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp)
                     )
-                    Column(Modifier.padding(start = 22.dp)) {
-                        Text("wishissue", style = MaterialTheme.typography.headlineLargeEmphasized)
-                        Text("Maker of Wishy Browser", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            "A fast, private browser built for the big screen.",
-                            style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
                 }
             }
             item { ActionRow(Sym.Code, "GitHub profile", "github.com/wishissue") { c.open(GITHUB) } }
@@ -57,9 +51,11 @@ private val CREDITS = listOf(
     Credit("Jetpack Compose and Material 3", "The interface toolkit", "Apache-2.0", "https://developer.android.com/compose"),
     Credit("Material Color Utilities", "Generates the 45 colour themes", "Apache-2.0", "https://github.com/material-foundation/material-color-utilities"),
     Credit("Material Symbols", "Icons", "Apache-2.0", "https://fonts.google.com/icons"),
+    Credit("OkHttp", "The download manager: resume, redirects and secure connections", "Apache-2.0", "https://square.github.io/okhttp/"),
     Credit("Open-Source Cursor Collection", "Bibata, Capitaine, Phinger, Vimix and XCursor Pro packs", "LGPL / CC / GPL", "https://github.com/ful1e5/Bibata_Cursor"),
     Credit("EasyPrivacy and Peter Lowe's ad server list", "Domains behind the built-in blocker", "GPL-3.0 / CC BY-SA", "https://easylist.to/"),
-    Credit("Poppins", "Typeface, by Indian Type Foundry", "OFL-1.1", "https://fonts.google.com/specimen/Poppins"),
+    Credit("Plus Jakarta Sans", "Interface typeface, by Tokotype", "OFL-1.1", "https://fonts.google.com/specimen/Plus+Jakarta+Sans"),
+    Credit("Bagel Fat One", "App-name typeface, by JAMO", "OFL-1.1", "https://fonts.google.com/specimen/Bagel+Fat+One"),
     Credit("TV Bro", "Inspired the D-pad pointer idea (no code used)", "GPL-3.0", "https://github.com/truefedex/tv-bro"),
 )
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -35,8 +36,11 @@ import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.Modifier
@@ -46,14 +50,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.wishy.browser.BrowserController
 import org.wishy.browser.Page
+import org.wishy.browser.R
 import org.wishy.browser.Shields
+import org.wishy.browser.ui.theme.BagelFatOne
 import java.text.DateFormat
 import java.util.Calendar
 import java.util.Date
@@ -85,9 +94,6 @@ private val TILE_SHAPES = listOf(
  */
 @Composable
 fun HomeScreen(c: BrowserController) {
-    // Drift two soft blobs behind everything; skipped entirely when "reduce motion" is on.
-    val drift = rememberInfiniteTransition(label = "drift")
-    val spin by drift.animateFloat(0f, 360f, infiniteRepeatable(tween(60000, easing = LinearEasing)), label = "spin")
     val cs = MaterialTheme.colorScheme
 
     LaunchedEffect(c.overlay) {
@@ -102,20 +108,8 @@ fun HomeScreen(c: BrowserController) {
     Box(
         Modifier.fillMaxSize()
             .focusProperties { this.canFocus = canFocus }
-            .background(Brush.verticalGradient(listOf(cs.surface, cs.primaryContainer.copy(alpha = 0.35f), cs.surface)))
+            .background(cs.background)
     ) {
-        if (!c.reduceMotion) {
-            Box(
-                Modifier.align(Alignment.TopEnd).padding(end = 40.dp, top = 20.dp).size(340.dp)
-                    .graphicsLayer { rotationZ = spin }.clip(MaterialShapes.Cookie12Sided.toShape())
-                    .background(cs.primary.copy(alpha = 0.10f))
-            )
-            Box(
-                Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 10.dp).size(280.dp)
-                    .graphicsLayer { rotationZ = -spin * 0.7f }.clip(MaterialShapes.SoftBurst.toShape())
-                    .background(cs.tertiary.copy(alpha = 0.10f))
-            )
-        }
 
         Column(Modifier.fillMaxSize().safeDrawingPadding().padding(horizontal = 48.dp, vertical = 20.dp)) {
             Row(
@@ -140,11 +134,11 @@ fun HomeScreen(c: BrowserController) {
                 item {
                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                         Clock(Modifier.reveal(0))
-                        Spacer(Modifier.height(22.dp))
+                        Spacer(Modifier.height(16.dp))
                         SearchPill(
                             display = "", editText = "", placeholder = "Search ${c.searchEngine.label} or type an address",
                             icon = Sym.Search, onSubmit = { c.open(it) }, focus = c.urlFocus,
-                            modifier = Modifier.widthIn(max = 780.dp).reveal(1), height = 68.dp,
+                            modifier = Modifier.widthIn(max = 840.dp).reveal(1), height = 68.dp,
                             loading = c.loading
                         )
                     }
@@ -232,29 +226,69 @@ private fun ShieldPill(c: BrowserController) {
     }
 }
 
+/** Big auto-scaling time in expressively styled font (system 12/24-hour setting) with AM/PM indicator. Updates on the minute. */
 @Composable
 private fun Clock(modifier: Modifier = Modifier) {
-    val now by produceState(Date()) {
-        while (true) { value = Date(); delay(20_000) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val cs = MaterialTheme.colorScheme
+    val now by produceState(System.currentTimeMillis()) {
+        while (true) { value = System.currentTimeMillis(); delay(60_000L - value % 60_000L + 50L) }
     }
-    val hour = Calendar.getInstance().apply { time = now }.get(Calendar.HOUR_OF_DAY)
-    val greeting = when {
-        hour < 5 -> "Still up?"
-        hour < 12 -> "Good morning"
-        hour < 17 -> "Good afternoon"
-        hour < 22 -> "Good evening"
-        else -> "Still up?"
-    }
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            DateFormat.getTimeInstance(DateFormat.SHORT).format(now),
-            style = MaterialTheme.typography.displayLargeEmphasized, fontWeight = FontWeight.Bold
-        )
-        Text(
-            greeting + " · " + java.text.SimpleDateFormat("EEEE, MMMM d", java.util.Locale.getDefault()).format(now),
-            style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
+    val is24 = remember { android.text.format.DateFormat.is24HourFormat(ctx) }
+    val date = Date(now)
+    val loc = remember { java.util.Locale.getDefault() }
+    val time = java.text.SimpleDateFormat(if (is24) "HH:mm" else "h:mm", loc).format(date)
+    val ampm = if (is24) null else java.text.SimpleDateFormat("a", loc).format(date)
+
+    BoxWithConstraints(
+        modifier = modifier.fillMaxWidth().padding(top = 10.dp, bottom = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        val targetSp = (maxWidth.value * 0.16f).coerceIn(48f, 82f)
+        var scaledSp by remember(time, ampm, maxWidth) { mutableFloatStateOf(targetSp) }
+        var readyToDraw by remember(time, ampm, maxWidth) { mutableStateOf(false) }
+
+        Row(
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.graphicsLayer { alpha = if (readyToDraw) 1f else 0f }
+        ) {
+            Text(
+                text = time,
+                color = cs.onBackground,
+                maxLines = 1,
+                softWrap = false,
+                onTextLayout = { textLayoutResult ->
+                    if (textLayoutResult.hasVisualOverflow && scaledSp > 32f) {
+                        scaledSp -= 2f
+                    } else {
+                        readyToDraw = true
+                    }
+                },
+                style = TextStyle(
+                    fontFamily = BagelFatOne,
+                    fontSize = scaledSp.sp,
+                    lineHeight = (scaledSp * 1.05f).sp,
+                    letterSpacing = (-1).sp,
+                    fontFeatureSettings = "tnum",
+                )
+            )
+            if (ampm != null) {
+                val ampmSp = (scaledSp * 0.28f).coerceAtLeast(16f)
+                Text(
+                    text = ampm.uppercase(),
+                    color = cs.primary,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.padding(start = (scaledSp * 0.1f).dp, bottom = (scaledSp * 0.12f).dp),
+                    style = TextStyle(
+                        fontFamily = BagelFatOne,
+                        fontSize = ampmSp.sp,
+                        lineHeight = (ampmSp * 1.1f).sp,
+                    )
+                )
+            }
+        }
     }
 }
 

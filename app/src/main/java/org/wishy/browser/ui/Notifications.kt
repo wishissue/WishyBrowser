@@ -78,7 +78,7 @@ private fun lookOf(kind: NoteKind): Look {
  */
 @Composable
 fun NotificationHost(c: BrowserController) {
-    val top = if (!c.atHome && !c.isFullScreen) 96.dp else 28.dp
+    val top = if (c.barShown && c.barSide == org.wishy.browser.BarSide.TOP) 96.dp else 28.dp
     Box(
         Modifier.fillMaxSize().safeDrawingPadding().padding(top = top, end = 28.dp, start = 28.dp),
         contentAlignment = Alignment.TopEnd

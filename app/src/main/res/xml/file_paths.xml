@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Downloads saved in the app's own folder (Android 9 and older without storage permission). -->
+    <external-files-path name="app_downloads" path="." />
+    <!-- Android 9 and older with storage permission: the public Downloads folder. -->
+    <external-path name="public_downloads" path="Download/" />
+</paths>

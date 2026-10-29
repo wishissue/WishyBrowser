@@ -69,9 +69,7 @@ fun PageThumb(
         } else {
             val h = hueOf(host)
             Box(
-                Modifier.fillMaxSize().background(
-                    Brush.linearGradient(listOf(Color.hsv(h, 0.52f, 0.58f), Color.hsv((h + 42f) % 360f, 0.62f, 0.34f)))
-                ),
+                Modifier.fillMaxSize().background(Color.hsv(h, 0.40f, 0.52f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Sym.Public, null, Modifier.align(Alignment.BottomEnd).padding(8.dp).size(40.dp), tint = Color.White.copy(alpha = 0.14f))

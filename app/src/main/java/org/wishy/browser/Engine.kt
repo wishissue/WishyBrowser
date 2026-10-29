@@ -111,7 +111,7 @@ enum class SearchEngine(val id: String, val label: String, private val template:
 enum class Opt(val key: String, val group: String, val title: String, val desc: String, val default: Boolean = true) {
     TRACKERS("trackers", "Blocking", "Block ads and trackers", "Drops requests to about 46,000 ad and tracking hosts"),
     COOKIE_BANNERS("banners", "Blocking", "Hide cookie pop-ups", "Hides common consent banners and unlocks scrolling"),
-    POPUPS("popups", "Blocking", "Block pop-ups", "New windows open only when you click, always in the same tab"),
+    POPUPS("popups", "Blocking", "Block pop-ups", "New windows open only when you click"),
     AUTOPLAY("autoplay", "Blocking", "Block autoplay", "Video and audio start only after you press OK"),
     THIRD_PARTY_COOKIES("tp_cookies", "Tracking", "Block third-party cookies", "Stops sites following you across other sites"),
     CLEAN_LINKS("clean_links", "Tracking", "Clean tracking links", "Removes utm_, fbclid, gclid and similar parameters"),
@@ -122,7 +122,8 @@ enum class Opt(val key: String, val group: String, val title: String, val desc: 
     HTTPS_UPGRADE("https", "Connection", "Upgrade to HTTPS", "Opens http:// pages over https when the site supports it"),
     LOCATION("location", "Device", "Block location", "Sites can never ask for your position"),
     FORMS("forms", "Device", "Don't save passwords or forms", "Nothing you type into a page is remembered"),
-    WIPE_EXIT("wipe_exit", "Device", "Wipe data at exit", "Cookies, cache and history are erased when the app closes and starts"),
+    ASK_DOWNLOAD("ask_download", "Device", "Ask before downloading", "A page cannot put a file on your device without your OK"),
+    WIPE_EXIT("wipe_exit", "Device", "Wipe data at exit", "Cookies, cache, history and the download list are erased when the app closes and starts"),
     LITE("lite", "Speed", "Lite mode (no images)", "Loads pages much faster on weak TVs; off by default", default = false);
 
     val icon: ImageVector
@@ -140,6 +141,7 @@ enum class Opt(val key: String, val group: String, val title: String, val desc: 
             HTTPS_UPGRADE -> Sym.Lock
             LOCATION -> Sym.PublicOff
             FORMS -> Sym.Key
+            ASK_DOWNLOAD -> Sym.Download
             WIPE_EXIT -> Sym.DeleteSweep
             LITE -> Sym.Speed
         }

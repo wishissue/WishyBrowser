@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -40,7 +39,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import org.wishy.browser.BrowserController
 import org.wishy.browser.Page
@@ -75,16 +73,9 @@ fun MenuSheet(c: BrowserController) {
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item {
-                        Row(Modifier.padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Image(
-                                painterResource(R.drawable.ic_cat_logo), null,
-                                Modifier.size(52.dp).clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                            )
-                            Column(Modifier.padding(start = 14.dp)) {
-                                Text("Wishy Browser", style = MaterialTheme.typography.titleLargeEmphasized)
-                                Text("Version 4.1", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
+                        Column(Modifier.padding(bottom = 4.dp)) {
+                            Text("Wishy Browser", style = MaterialTheme.typography.titleLarge, fontFamily = org.wishy.browser.ui.theme.BagelFatOne)
+                            Text("Version ${c.versionName}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     item { CurrentPageCard(c) }
@@ -103,9 +94,16 @@ fun MenuSheet(c: BrowserController) {
                     }
                     item { SectionLabel("Browse") }
                     item {
+                        val active = c.downloads.count { it.state == org.wishy.browser.DlState.RUNNING || it.state == org.wishy.browser.DlState.QUEUED }
                         TileRow(
+                            FeatureTile(Sym.Download, "Downloads", if (active > 0) "$active running" else "${c.downloads.size} in the list") { c.openPage(Page.DOWNLOADS) },
                             FeatureTile(Sym.BookmarkFilled, "Bookmarks", "${c.bookmarks.size} saved") { c.openPage(Page.BOOKMARKS) },
+                        )
+                    }
+                    item {
+                        TileRow(
                             FeatureTile(Sym.Notifications, "Notifications", if (c.unreadNotes > 0) "${c.unreadNotes} new" else "All caught up") { c.openPage(Page.NOTIFICATIONS) },
+                            FeatureTile(Sym.ShieldFilled, "Shields", if (Shields.blockerActive) "${c.blockedSession} blocked" else "Check blocker") { c.openPage(Page.SHIELDS) },
                         )
                     }
                     item {

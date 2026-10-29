@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
 class PaletteInfo(val id: String, val label: String, val seed: Color)
 
 val PALETTE_INFOS: List<PaletteInfo> = listOf(
-    PaletteInfo("wishy", "Wishy Blue", Color(0xFF51A9E8)),
+    PaletteInfo("wishy", "Wishy Blue", Color(0xFF1560D4)),
     PaletteInfo("orion", "Orion", Color(0xFF6366F1)),
     PaletteInfo("ocean", "Ocean", Color(0xFF0EA5E9)),
     PaletteInfo("forest", "Forest", Color(0xFF16A34A)),
@@ -107,43 +107,7 @@ fun paletteScheme(id: String, mode: String): ColorScheme = when (id) {
         else -> p_wishy(mode)
 }
 
-private fun p_wishy(mode: String): ColorScheme {
-    if (mode == "light") return lightColorScheme(
-        primary = Color(0xFF006497), onPrimary = Color(0xFFF6F9FF), primaryContainer = Color(0xFF34AEFA), onPrimaryContainer = Color(0xFF002A43),
-         inversePrimary = Color(0xFF34AEFA), secondary = Color(0xFF4C6175), onSecondary = Color(0xFFF6F9FF), secondaryContainer = Color(0xFFCEE5FC),
-         onSecondaryContainer = Color(0xFF3F5467), tertiary = Color(0xFF865400), onTertiary = Color(0xFFFFF7F3), tertiaryContainer = Color(0xFFFFAD3B),
-         onTertiaryContainer = Color(0xFF543300), background = Color(0xFFF8F9FD), onBackground = Color(0xFF2D3339), surface = Color(0xFFF8F9FD),
-         onSurface = Color(0xFF2D3339), surfaceVariant = Color(0xFFDDE3EB), onSurfaceVariant = Color(0xFF596067), surfaceTint = Color(0xFF006497),
-         inverseSurface = Color(0xFF0B0E11), inverseOnSurface = Color(0xFF9B9DA1), error = Color(0xFFA83836), onError = Color(0xFFFFF7F6),
-         errorContainer = Color(0xFFFA746F), onErrorContainer = Color(0xFF6E0A12), outline = Color(0xFF757B83), outlineVariant = Color(0xFFACB2BA),
-         scrim = Color(0xFF000000), surfaceBright = Color(0xFFF8F9FD), surfaceContainer = Color(0xFFEAEEF5), surfaceContainerHigh = Color(0xFFE4E8F0),
-         surfaceContainerHighest = Color(0xFFDDE3EB), surfaceContainerLow = Color(0xFFF1F4F9), surfaceContainerLowest = Color(0xFFFFFFFF), surfaceDim = Color(0xFFD5DAE3),
-         primaryFixed = Color(0xFF34AEFA), primaryFixedDim = Color(0xFF18A1EC), onPrimaryFixed = Color(0xFF00070F), onPrimaryFixedVariant = Color(0xFF003451),
-         secondaryFixed = Color(0xFFCEE5FC), secondaryFixedDim = Color(0xFFC0D7EE), onSecondaryFixed = Color(0xFF2C4154), onSecondaryFixedVariant = Color(0xFF485E71),
-         tertiaryFixed = Color(0xFFFFAD3B), tertiaryFixedDim = Color(0xFFEFA02E), onTertiaryFixed = Color(0xFF382000), onTertiaryFixedVariant = Color(0xFF613B00),
-    )
-    val d = darkColorScheme(
-        primary = Color(0xFF91CDFF), onPrimary = Color(0xFF004468), primaryContainer = Color(0xFF019BE6), onPrimaryContainer = Color(0xFF001524),
-         inversePrimary = Color(0xFF006497), secondary = Color(0xFFB3C9DF), onSecondary = Color(0xFF2D4254), secondaryContainer = Color(0xFF283E4F),
-         onSecondaryContainer = Color(0xFFABC2D8), tertiary = Color(0xFFFFC073), onTertiary = Color(0xFF613C00), tertiaryContainer = Color(0xFFFFAD3B),
-         onTertiaryContainer = Color(0xFF543300), background = Color(0xFF0B0E11), onBackground = Color(0xFFE0E6EE), surface = Color(0xFF0B0E11),
-         onSurface = Color(0xFFE0E6EE), surfaceVariant = Color(0xFF20262C), onSurfaceVariant = Color(0xFFA5ACB3), surfaceTint = Color(0xFF91CDFF),
-         inverseSurface = Color(0xFFF8F9FD), inverseOnSurface = Color(0xFF535559), error = Color(0xFFFA746F), onError = Color(0xFF490006),
-         errorContainer = Color(0xFF871F21), onErrorContainer = Color(0xFFFF9993), outline = Color(0xFF70767D), outlineVariant = Color(0xFF42494F),
-         scrim = Color(0xFF000000), surfaceBright = Color(0xFF262D33), surfaceContainer = Color(0xFF151A1F), surfaceContainerHigh = Color(0xFF1B2025),
-         surfaceContainerHighest = Color(0xFF20262C), surfaceContainerLow = Color(0xFF101418), surfaceContainerLowest = Color(0xFF000000), surfaceDim = Color(0xFF0B0E11),
-         primaryFixed = Color(0xFF34AEFA), primaryFixedDim = Color(0xFF18A1EC), onPrimaryFixed = Color(0xFF00070F), onPrimaryFixedVariant = Color(0xFF003451),
-         secondaryFixed = Color(0xFFCEE5FC), secondaryFixedDim = Color(0xFFC0D7EE), onSecondaryFixed = Color(0xFF2C4154), onSecondaryFixedVariant = Color(0xFF485E71),
-         tertiaryFixed = Color(0xFFFFAD3B), tertiaryFixedDim = Color(0xFFEFA02E), onTertiaryFixed = Color(0xFF382000), onTertiaryFixedVariant = Color(0xFF613B00),
-    )
-    return when (mode) {
-        "dusk" -> d.copy(background = Color(0xFF14212C), surface = Color(0xFF14212C), surfaceDim = Color(0xFF14212C), surfaceBright = Color(0xFF404D59), surfaceContainerLowest = Color(0xFF0C1923), surfaceContainerLow = Color(0xFF1A2732),
-            surfaceContainer = Color(0xFF212D39), surfaceContainerHigh = Color(0xFF293642), surfaceContainerHighest = Color(0xFF323F4B), surfaceVariant = Color(0xFF323F4B), onSurfaceVariant = Color(0xFFAABED1), outlineVariant = Color(0xFF405263))
-        "oled" -> d.copy(background = Color.Black, surface = Color.Black, surfaceDim = Color.Black, surfaceContainerLowest = Color.Black, surfaceContainerLow = Color(0xFF0B0E11),
-            surfaceContainer = Color(0xFF131619), surfaceContainerHigh = Color(0xFF191C1F), surfaceContainerHighest = Color(0xFF212427), surfaceVariant = Color(0xFF212427), surfaceBright = Color(0xFF2E3134))
-        else -> d
-    }
-}
+private fun p_wishy(mode: String): ColorScheme = wishyBrandScheme(mode)   // see WishyBrand.kt
 
 private fun p_orion(mode: String): ColorScheme {
     if (mode == "light") return lightColorScheme(

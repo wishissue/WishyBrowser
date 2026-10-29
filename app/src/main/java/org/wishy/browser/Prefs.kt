@@ -106,6 +106,21 @@ class Prefs(context: Context) {
         get() = sp.getString("last_update_notified", "") ?: ""
         set(value) = sp.edit().putString("last_update_notified", value).apply()
 
+    /** Where the toolbar sits: "top", "bottom", "left" or "right" (see BarSide). */
+    var barSide: String
+        get() = sp.getString("bar_side", "top") ?: "top"
+        set(value) = sp.edit().putString("bar_side", value).apply()
+
+    /** Full-screen mode: no toolbar and no system bars until you ask for them. */
+    var hideBar: Boolean
+        get() = sp.getBoolean("hide_bar", false)
+        set(value) = sp.edit().putBoolean("hide_bar", value).apply()
+
+    /** The notification permission is asked for once, when the first download starts. */
+    var notifAsked: Boolean
+        get() = sp.getBoolean("notif_asked", false)
+        set(value) = sp.edit().putBoolean("notif_asked", value).apply()
+
     fun opt(o: Opt): Boolean = sp.getBoolean("opt_" + o.key, o.default)
     fun setOpt(o: Opt, value: Boolean) = sp.edit().putBoolean("opt_" + o.key, value).apply()
 

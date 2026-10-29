@@ -12,11 +12,11 @@ android {
     compileSdkMinor = 1
 
     defaultConfig {
-        applicationId = "org.wishy.browser"
+        applicationId = "wishissue.wishybrowser"
         minSdk = 24          // system WebView needs no engine, so older TV boxes work too
         targetSdk = 36
-        versionCode = 10
-        versionName = "4.1.0"
+        versionCode = 11
+        versionName = "4.2.0"
         // English only: fewer strings and resources in the APK.
         androidResources.localeFilters += "en"
     }
@@ -81,6 +81,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
     // Document-start scripts for the privacy layer (Apache-2.0).
     implementation("androidx.webkit:webkit:1.14.0")
+    // Download manager: resume, redirects and TLS on old TV boxes (Apache-2.0).
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
 
 kotlin {

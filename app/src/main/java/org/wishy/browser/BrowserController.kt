@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
@@ -42,6 +43,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateListOf
@@ -63,7 +65,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /** The pages the menu can open. The back stack lives in [BrowserController.stack]. */
-enum class Page { MENU, BOOKMARKS, THEMES, CURSORS, SETTINGS, SHIELDS, PRIVACY, NOTIFICATIONS, DEVELOPER, CREDITS, DONATE }
+enum class Page { MENU, DOWNLOADS, BOOKMARKS, THEMES, CURSORS, SETTINGS, SHIELDS, PRIVACY, NOTIFICATIONS, DEVELOPER, CREDITS, DONATE }
 
 /** A dialog a web page asked for, shown by the Compose PromptHost. */
 sealed interface PromptRequest {
@@ -253,7 +255,7 @@ class BrowserController(
     val urlFocus = FocusRequester()
 
     val pointerVisible: Boolean
-        get() = pointerOn && !atHome && !chromeFocused && !isFullScreen && overlay == null && prompt == null && !findOpen && promo == null
+        get() = pointerOn && !atHome && !chromeFocused && !isFullScreen && overlay == null && prompt == null && !findOpen && promo == null && !addressOpen
 
     // ------------------------------------------------------------------
     // The WebView and every privacy switch it has
@@ -301,9 +303,7 @@ class BrowserController(
         s.textZoom = (prefs.textScale * 100f).roundToInt()
         WebView.setWebContentsDebuggingEnabled(false)
         CookieManager.getInstance().setAcceptCookie(true)
-        w.setDownloadListener { _, _, _, _, _ ->
-            notify(NoteKind.INFO, "Downloads are not supported", "This browser only shows pages", Sym.Close)
-        }
+        w.setDownloadListener { u, _, cd, mime, len -> onDownloadRequested(u, cd, mime, len) }
         w.setOnScrollChangeListener { _, _, y, _, _ -> pageScrollY = y }
         w.webViewClient = client
         w.webChromeClient = chrome
@@ -365,8 +365,9 @@ class BrowserController(
         runCatching { web.clearCache(true); web.clearHistory(); web.clearFormData() }
         thumbs.clear(includeBookmarks = false)
         recents.clear()
+        if (DownloadHub.hasActive()) DownloadHub.clearFinished() else DownloadHub.wipeIfIdle()
         goHome()
-        notify(NoteKind.SUCCESS, "Browsing data cleared", "Cookies, cache, history and previews", Sym.DeleteSweep)
+        notify(NoteKind.SUCCESS, "Browsing data cleared", "Cookies, cache, history and download list", Sym.DeleteSweep)
     }
 
     fun setSearchEngine(e: SearchEngine) {
@@ -434,6 +435,7 @@ class BrowserController(
     fun open(input: String) {
         if (input.isBlank()) return
         exitArmed = false
+        addressOpen = false
         stack.clear()
         loadUri(resolveInput(input))
         focusPage()
@@ -467,11 +469,13 @@ class BrowserController(
 
     fun focusPage() {
         chromeFocused = false
+        if (hideBar) barRevealed = false          // full-screen mode: the toolbar goes away when you go back to the page
         runCatching { web.requestFocus() }
     }
 
     fun focusToolbar() {
         stopCursor()
+        if (hideBar && !barRevealed) { focusOnReveal = true; revealBar() }   // not composed yet: the toolbar takes focus itself when it appears
         runCatching { urlFocus.requestFocus() }
     }
 
@@ -711,6 +715,154 @@ class BrowserController(
     fun exitApp() = bridge.finishApp()
 
     // ------------------------------------------------------------------
+    // Layout: where the toolbar sits, and full-screen mode
+    // ------------------------------------------------------------------
+
+    private var _barSide by mutableStateOf(BarSide.byId(prefs.barSide))
+    val barSide: BarSide get() = _barSide
+    /** Full-screen mode: the toolbar and the system bars stay hidden until asked for. */
+    private var _hideBar by mutableStateOf(prefs.hideBar)
+    val hideBar: Boolean get() = _hideBar
+    /** In full-screen mode: the toolbar is showing for a moment. */
+    var barRevealed by mutableStateOf(false)
+        private set
+    var barTick by mutableIntStateOf(0)
+        private set
+    /** The address sheet used by the left and right toolbars (their column has no room for the address). */
+    var addressOpen by mutableStateOf(false)
+
+    val barShown: Boolean get() = !atHome && !isFullScreen && (!hideBar || barRevealed)
+
+    fun setBarSide(side: BarSide) {
+        prefs.barSide = side.id; _barSide = side
+        notify(NoteKind.INFO, "Toolbar on the ${side.label.lowercase()}", null, Sym.ViewAgenda)
+    }
+
+    fun setHideBar(on: Boolean) {
+        prefs.hideBar = on; _hideBar = on; barRevealed = false
+        notify(
+            NoteKind.INFO, if (on) "Full-screen mode on" else "Full-screen mode off",
+            if (on) "Toolbar back: ${revealHint()}, press SEARCH, or hold MENU" else null, Sym.Fullscreen, if (on) 8000L else 3800L
+        )
+    }
+
+    private fun revealHint() = when (barSide) {
+        BarSide.TOP -> "pointer up at the top edge"
+        BarSide.BOTTOM -> "pointer down at the bottom edge"
+        BarSide.LEFT -> "pointer left at the left edge"
+        BarSide.RIGHT -> "pointer right at the right edge"
+    }
+
+    /** Short name of the push that opens the toolbar, for the key hints. */
+    val revealKeyHint: String get() = when (barSide) {
+        BarSide.TOP -> "Up at top"; BarSide.BOTTOM -> "Down at bottom"; BarSide.LEFT -> "Left at edge"; BarSide.RIGHT -> "Right at edge"
+    }
+
+    fun revealBar() { if (hideBar) { barRevealed = true; barTick++ } }
+
+    /** Full-screen mode: put the toolbar away again (used by the idle timer). */
+    fun hideBarNow() { if (hideBar && barRevealed && !chromeFocused) barRevealed = false }
+
+    private var focusOnReveal = false
+
+    /** True once after the toolbar was brought back by a key: it should take the remote's focus. */
+    fun takeFocusOnReveal(): Boolean { val v = focusOnReveal; focusOnReveal = false; return v }
+
+    fun leaveToolbar() = focusPage()
+
+    /** The pointer is against the toolbar's edge and the user pushed on towards it. */
+    private fun edgePush(code: Int): Boolean = when (barSide) {
+        BarSide.TOP -> code == KeyEvent.KEYCODE_DPAD_UP && cursorY <= 2f && pageScrollY <= 0
+        BarSide.BOTTOM -> code == KeyEvent.KEYCODE_DPAD_DOWN && cursorY >= viewH - 2f && !web.canScrollVertically(1)
+        BarSide.LEFT -> code == KeyEvent.KEYCODE_DPAD_LEFT && cursorX <= 2f
+        BarSide.RIGHT -> code == KeyEvent.KEYCODE_DPAD_RIGHT && cursorX >= viewW - 2f
+    }
+
+    /** SEARCH, F6, Ctrl+L: the address pill (top and bottom toolbars) or the address sheet (left and right). */
+    fun openAddress() {
+        if (!atHome && barSide.vertical) { stopCursor(); addressOpen = true } else focusToolbar()
+    }
+
+    fun closeAddress() { addressOpen = false; focusPage() }
+
+
+
+    // ------------------------------------------------------------------
+    // Downloads (the engine is in Downloads.kt)
+    // ------------------------------------------------------------------
+
+    val downloads: SnapshotStateList<DlItem> get() = DownloadHub.items
+
+    private fun originOf(u: String): String? =
+        runCatching { Uri.parse(u).let { if (it.scheme != null && it.host != null) "${it.scheme}://${it.host}/" else null } }.getOrNull()
+
+    /** The page started a download. Ask first (unless that switch is off), then hand it to the download manager. */
+    private fun onDownloadRequested(u: String, cd: String?, mime: String?, len: Long) {
+        ui.post {
+            if (prompt != null) return@post
+            val scheme = runCatching { Uri.parse(u).scheme?.lowercase() }.getOrNull()
+            if (scheme == "blob") {
+                notify(NoteKind.WARNING, "Can't download this yet", "This site builds the file inside the page", Sym.Download, 5200L)
+                return@post
+            }
+            if (scheme != "http" && scheme != "https" && scheme != "data") {
+                notify(NoteKind.WARNING, "Can't download this", "Unsupported address type", Sym.Download, 4500L)
+                return@post
+            }
+            val name = DownloadHub.guessName(u, cd, mime)
+            val pageHost = runCatching { Uri.parse(url).host }.getOrNull()
+            val fileHost = runCatching { Uri.parse(u).host }.getOrNull()
+            // "Hide where you came from": a file on another site gets no referrer at all.
+            val referer = if (has(Opt.REFERRER) && pageHost != fileHost) null else originOf(url)
+            val go = { startDownload(u, referer, name, mime, len) }
+            if (has(Opt.ASK_DOWNLOAD)) {
+                stopCursor()
+                promptCancel = { }
+                val size = if (len > 0) " (${android.text.format.Formatter.formatShortFileSize(activity, len)})" else ""
+                prompt = PromptRequest.Confirm(hostOf(url), "Download $name$size?") { ok ->
+                    prompt = null; promptCancel = null
+                    if (ok) go()
+                }
+            } else go()
+        }
+    }
+
+    private fun startDownload(u: String, referer: String?, name: String, mime: String?, len: Long) {
+        ensureDownloadPermissions {
+            DownloadHub.enqueue(u, referer, name, mime, len)
+            notify(NoteKind.INFO, "Download started", name, Sym.Download, 3200L)
+        }
+    }
+
+    /** Android 9 and older need storage permission to write into Downloads; Android 13+ asks once for notifications. */
+    private fun ensureDownloadPermissions(then: () -> Unit) {
+        val needStorage = Build.VERSION.SDK_INT < 29 &&
+            ContextCompat.checkSelfPermission(activity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
+        val needNotif = Build.VERSION.SDK_INT >= 33 && !prefs.notifAsked &&
+            ContextCompat.checkSelfPermission(activity, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        val afterStorage = {
+            if (needNotif) {
+                prefs.notifAsked = true
+                runCatching { bridge.requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS)) { then() } }.onFailure { then() }
+            } else then()
+        }
+        // A denied permission is fine: the file then goes to the app's own folder, and progress only shows in the app.
+        if (needStorage) runCatching { bridge.requestPermissions(arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)) { afterStorage() } }.onFailure { afterStorage() }
+        else afterStorage()
+    }
+
+    fun openDownload(d: DlItem) {
+        val saved = d.savedUri ?: return
+        val uri = DownloadHub.shareUri(saved)
+        if (uri == null) { notify(NoteKind.WARNING, "Can't find that file", d.savedWhere, Sym.Warning); return }
+        val i = Intent(Intent.ACTION_VIEW).setDataAndType(uri, DownloadHub.mimeOf(d))
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { activity.startActivity(i) }.onFailure {
+            notify(NoteKind.WARNING, "No app can open this file", "It is in ${d.savedWhere ?: "Downloads"}", Sym.Warning, 5200L)
+        }
+    }
+
+    // ------------------------------------------------------------------
     // Back button
     // ------------------------------------------------------------------
 
@@ -720,7 +872,9 @@ class BrowserController(
             prompt != null -> { val c = promptCancel; promptCancel = null; prompt = null; c?.invoke() }
             promo != null -> dismissPromo()
             findOpen -> closeFind()
+            addressOpen -> closeAddress()
             stack.isNotEmpty() -> popPage()
+            hideBar && barRevealed -> { barRevealed = false; focusPage() }
             isFullScreen -> chrome.onHideCustomView()
             atHome -> if (exitArmed) bridge.finishApp() else { exitArmed = true; notify(NoteKind.INFO, "Press Back again to exit", null, Sym.Close, 2600L) }
             chromeFocused -> if (exitArmed) bridge.finishApp() else focusPage()
@@ -1135,7 +1289,7 @@ class BrowserController(
     // ------------------------------------------------------------------
 
     /** True while Compose should own the keys: a page/menu/dialog is open, the home screen is showing, or the toolbar has focus. */
-    private val uiOwnsKeys: Boolean get() = overlay != null || prompt != null || atHome || chromeFocused || findOpen || promo != null
+    private val uiOwnsKeys: Boolean get() = overlay != null || prompt != null || atHome || chromeFocused || findOpen || promo != null || addressOpen
 
     fun handleKey(event: KeyEvent): Boolean {
         val down = event.action == KeyEvent.ACTION_DOWN
@@ -1150,7 +1304,8 @@ class BrowserController(
             when (event.keyCode) {
                 KeyEvent.KEYCODE_D -> { if (first) toggleBookmark(); return true }
                 KeyEvent.KEYCODE_B -> { if (first) openPage(Page.BOOKMARKS); return true }
-                KeyEvent.KEYCODE_L -> { if (first) focusToolbar(); return true }
+                KeyEvent.KEYCODE_L -> { if (first) openAddress(); return true }
+                KeyEvent.KEYCODE_J -> { if (first) openPage(Page.DOWNLOADS); return true }
                 KeyEvent.KEYCODE_R -> { if (first) reload(); return true }
                 KeyEvent.KEYCODE_F -> { if (first) openFind(); return true }
                 KeyEvent.KEYCODE_C -> if (event.isShiftPressed) { if (first) copyLink(); return true }
@@ -1172,9 +1327,9 @@ class BrowserController(
                 return true
             }
             KeyEvent.KEYCODE_BOOKMARK -> { if (first) openPage(Page.BOOKMARKS); return true }
-            KeyEvent.KEYCODE_SEARCH -> { if (first) focusToolbar(); return true }
+            KeyEvent.KEYCODE_SEARCH -> { if (first) openAddress(); return true }
             KeyEvent.KEYCODE_F5 -> { if (first) reload(); return true }
-            KeyEvent.KEYCODE_F6 -> { if (first) focusToolbar(); return true }
+            KeyEvent.KEYCODE_F6 -> { if (first) openAddress(); return true }
         }
         if (isFullScreen && overlay == null) return fullscreenKey(event)
         if (uiOwnsKeys) return false
@@ -1202,9 +1357,7 @@ class BrowserController(
             when (event.keyCode) {
                 KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
                     if (first) {
-                        if (event.keyCode == KeyEvent.KEYCODE_DPAD_UP && cursorY <= 2f && pageScrollY <= 0) {
-                            focusToolbar(); return true
-                        }
+                        if (edgePush(event.keyCode)) { focusToolbar(); return true }
                         startCursorKey(event.keyCode)
                     }
                     return true
@@ -1283,7 +1436,7 @@ class BrowserController(
         val edge = 64f * density
         var ny = dy
         // At the top/bottom edge the pointer stays put and the page scrolls instead.
-        if (dy > 0f && cursorY >= viewH - edge) { scrollPageBy(dy * 1.6f); ny = 0f }
+        if (dy > 0f && cursorY >= viewH - edge && web.canScrollVertically(1)) { scrollPageBy(dy * 1.6f); ny = 0f }
         else if (dy < 0f && cursorY <= edge && pageScrollY > 0) { scrollPageBy(dy * 1.6f); ny = 0f }
         cursorY = (cursorY + ny).coerceIn(0f, viewH)
         cursorX = (cursorX + dx).coerceIn(0f, viewW)
@@ -1374,6 +1527,8 @@ class BrowserController(
 
     fun onDestroy() {
         stopCursor()
+        DownloadHub.listener = null
+        if (has(Opt.WIPE_EXIT)) DownloadHub.wipeIfIdle()
         ui.removeCallbacksAndMessages(null)
         fileCb?.onReceiveValue(null); fileCb = null
         customView?.let { (it.parent as? ViewGroup)?.removeView(it) }
@@ -1391,6 +1546,14 @@ class BrowserController(
     // Last on purpose: the clients above are property initialisers and must exist before the first WebView is built.
     init {
         wipePrivateData()
+        DownloadHub.init(activity.applicationContext)
+        if (has(Opt.WIPE_EXIT)) DownloadHub.wipeIfIdle()
+        DownloadHub.listener = { ev ->
+            when (ev) {
+                is DlEvent.Done -> notify(NoteKind.SUCCESS, "Download finished", ev.item.name, Sym.Download, 5200L)
+                is DlEvent.Failed -> notify(NoteKind.ERROR, "Download failed", "${ev.item.name}: ${ev.item.error ?: "unknown problem"}", Sym.Error, 6500L)
+            }
+        }
         webRef = createWeb()
         thumbs.prune(bookmarks.map { it.url })
         ui.postDelayed({ startPromos() }, 3500L)

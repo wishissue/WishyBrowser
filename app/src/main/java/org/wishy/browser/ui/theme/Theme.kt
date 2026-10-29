@@ -5,7 +5,9 @@ import androidx.compose.animation.core.snap
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.Typography
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -13,12 +15,16 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import org.wishy.browser.R
 
+/** Interface type (WishIssue guidelines): Plus Jakarta Sans. */
 private val Poppins = FontFamily(
-    Font(R.font.poppins_regular, FontWeight.Normal),
-    Font(R.font.poppins_medium, FontWeight.Medium),
-    Font(R.font.poppins_semibold, FontWeight.SemiBold),
-    Font(R.font.poppins_bold, FontWeight.Bold),
+    Font(R.font.plusjakarta_regular, FontWeight.Normal),
+    Font(R.font.plusjakarta_medium, FontWeight.Medium),
+    Font(R.font.plusjakarta_semibold, FontWeight.SemiBold),
+    Font(R.font.plusjakarta_bold, FontWeight.Bold),
 )
+
+/** Expressive brand type, for the app name only. */
+val BagelFatOne = FontFamily(Font(R.font.bagelfatone_regular, FontWeight.Normal))
 
 private fun TextStyle.p() = copy(fontFamily = Poppins)
 
@@ -53,5 +59,8 @@ fun WishyTheme(themeId: String, mode: String, reduceMotion: Boolean, content: @C
     val colors = remember(themeId, mode) { paletteScheme(themeId, mode) }
     val motion = remember(reduceMotion) { if (reduceMotion) InstantMotion else MotionScheme.expressive() }
     val type = remember { poppinsTypography() }
-    MaterialExpressiveTheme(colorScheme = colors, motionScheme = motion, typography = type, content = content)
+    MaterialExpressiveTheme(colorScheme = colors, motionScheme = motion, typography = type) {
+        // Text outside a Surface used to default to black, which vanished on dark themes (the home-screen clock).
+        CompositionLocalProvider(LocalContentColor provides colors.onSurface, content = content)
+    }
 }

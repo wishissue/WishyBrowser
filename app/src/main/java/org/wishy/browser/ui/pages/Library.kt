@@ -335,6 +335,28 @@ fun SettingsPage(c: BrowserController) {
                     )
                 }
             }
+            item { SectionLabel("Layout") }
+            item {
+                Text(
+                    "Toolbar position", Modifier.padding(start = 8.dp),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+            item {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (side in org.wishy.browser.BarSide.entries) {
+                        FilterChip(selected = c.barSide == side, onClick = { c.setBarSide(side) }, label = { Text(side.label) })
+                    }
+                }
+            }
+            item {
+                ActionRow(
+                    Sym.Fullscreen, "Full-screen mode",
+                    "Hides the toolbar and system bars. Drag in from the edge, push the pointer against it, press SEARCH, or hold MENU to bring the toolbar back.",
+                    trailing = { Switch(c.hideBar, null) }
+                ) { c.setHideBar(!c.hideBar) }
+            }
+            item { ActionRow(Sym.Download, "Downloads", "${c.downloads.size} in the list") { c.openPage(Page.DOWNLOADS) } }
             item { SectionLabel("Privacy and search") }
             item { ActionRow(Sym.ShieldLockFilled, "Privacy", "${c.protectionsOn} of ${c.protectionsTotal} protections on") { c.openPage(Page.PRIVACY) } }
             item { ActionRow(Sym.Search, "Search engine", c.searchEngine.label) { c.openPage(Page.PRIVACY) } }
