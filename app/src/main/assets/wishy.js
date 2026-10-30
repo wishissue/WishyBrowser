@@ -1,7 +1,4 @@
 (function(){ if (window.__wy) return; window.__wy = 1;
-(function(){var id="__wy_css";if(document.getElementById(id))return;var s=document.createElement("style");s.id=id;
-s.textContent='ins.adsbygoogle,.adsbygoogle,[id^="google_ads_iframe"],[id^="div-gpt-ad"],[id^="google_ads_"],iframe[src*="doubleclick.net"],iframe[src*="googlesyndication.com"],iframe[src*="adservice.google."],.ad-banner:not(body):not(html),.sponsored-ad,.advertisement:not(body):not(html),[aria-label="Advertisement"],[data-ad-slot]{display:none!important}';
-(document.head||document.documentElement).appendChild(s)})();
 (function() {
     const FOCUSABLE_SELECTOR = 'a, button, input, select, textarea, [tabindex="0"], [onclick], [role="button"]';
     let focusables = [];
@@ -174,44 +171,10 @@ s.textContent='ins.adsbygoogle,.adsbygoogle,[id^="google_ads_iframe"],[id^="div-
     (document.head || document.documentElement).appendChild(style);
 })();
 
-// Wishy Core: a small second layer on top of uBlock Origin. It never replaces the blocker; it only
-// cleans up what is left (YouTube video ads that slip through, and empty ad frames).
+// Wishy Core: collapses ad frames that were blocked and left an empty box. (YouTube ads and ad-space hiding
+// now live in adblock.js, which runs at document start.)
 (function () {
     "use strict";
-
-    // ---- YouTube: skip or fast-forward any ad that still starts ----------------------------
-    if (/(^|\.)youtube\.com$/.test(location.hostname)) {
-        let mutedByUs = false;
-        let lastRate = 1;
-        const SKIP = [
-            ".ytp-skip-ad-button", ".ytp-ad-skip-button", ".ytp-ad-skip-button-modern",
-            ".ytp-ad-skip-button-container button", "button.ytp-ad-skip-button-modern",
-        ].join(",");
-
-        const tick = () => {
-            const player = document.querySelector(".html5-video-player");
-            const video = document.querySelector("video.html5-main-video") || document.querySelector("video");
-            const adShowing = !!player && player.classList.contains("ad-showing");
-
-            const skip = document.querySelector(SKIP);
-            if (skip) skip.click();
-            const close = document.querySelector(".ytp-ad-overlay-close-button");
-            if (close) close.click();
-
-            if (adShowing && video) {
-                if (!mutedByUs) { lastRate = video.playbackRate || 1; mutedByUs = !video.muted; if (mutedByUs) video.muted = true; }
-                try { video.playbackRate = 16; } catch (e) { /* ignore */ }
-                if (isFinite(video.duration) && video.duration > 0 && video.currentTime < video.duration - 0.2) {
-                    try { video.currentTime = video.duration; } catch (e) { /* ignore */ }
-                }
-            } else if (video && mutedByUs) {
-                video.muted = false;
-                try { video.playbackRate = lastRate; } catch (e) { /* ignore */ }
-                mutedByUs = false;
-            }
-        };
-        setInterval(tick, 500);
-    }
 
     // ---- Everywhere: collapse ad frames that were blocked and left an empty box -------------
     const AD_FRAMES = 'iframe[src*="doubleclick.net"], iframe[src*="googlesyndication.com"], iframe[id^="google_ads_iframe"], ins.adsbygoogle';

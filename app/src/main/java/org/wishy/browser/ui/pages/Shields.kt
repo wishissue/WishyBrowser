@@ -68,10 +68,16 @@ fun ShieldsPage(c: BrowserController) {
                     trailing = { Switch(c.notifyBlocked, null) }
                 ) { c.toggleNotifyBlocked() }
             }
+            if (c.canToggleSiteShields) item {
+                ActionRow(
+                    Sym.ShieldFilled, "Shields on this site", "Turn off if a page is broken by blocking (reloads the page)",
+                    trailing = { Switch(c.siteShieldsOn, null) }
+                ) { c.toggleSiteShields() }
+            }
             item { SectionLabel("Ad and tracker blocking") }
             item { InfoRow("Blocked hosts (ad servers, EasyPrivacy)", if (active) "${Shields.domains}" else "Loading", active) }
-            item { InfoRow("Hidden ad frames", "On", true) }
-            item { InfoRow("YouTube ad skipper", "On", true) }
+            item { InfoRow("YouTube ads", if (c.isOn(Opt.YOUTUBE_ADS)) "Removed" else "Off", c.isOn(Opt.YOUTUBE_ADS)) }
+            item { InfoRow("Ad spaces", if (c.isOn(Opt.AD_COSMETIC)) "Hidden" else "Off", c.isOn(Opt.AD_COSMETIC)) }
             item { InfoRow("Pop-up windows", "Only when you click", true) }
             item { ActionRow(Sym.AdsClick, "Run an ad-block test", "Opens a public page that scores your blocker") { c.open("https://d3ward.github.io/toolz/adblock.html") } }
             item { SectionLabel("Protections (${c.protectionsOn} of ${c.protectionsTotal} on)") }

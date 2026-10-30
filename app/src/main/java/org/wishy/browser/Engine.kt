@@ -46,6 +46,7 @@ object Blocklist {
 object Privacy {
     val EMPTY = ByteArray(0)
     fun emptyResponse() = WebResourceResponse("text/plain", "utf-8", 200, "OK", mapOf("Cache-Control" to "no-store"), ByteArrayInputStream(EMPTY))
+    fun emptyJson() = WebResourceResponse("application/json", "utf-8", 200, "OK", mapOf("Cache-Control" to "no-store"), ByteArrayInputStream("{}".toByteArray()))
 
     /** Request headers added to every page load we start. (WebView cannot add headers to sub-requests.) */
     val HEADERS = mapOf("Sec-GPC" to "1", "DNT" to "1")
@@ -109,8 +110,10 @@ enum class SearchEngine(val id: String, val label: String, private val template:
  * [default] is the value used before the user has chosen.
  */
 enum class Opt(val key: String, val group: String, val title: String, val desc: String, val default: Boolean = true) {
-    TRACKERS("trackers", "Blocking", "Block ads and trackers", "Drops requests to about 46,000 ad and tracking hosts"),
+    TRACKERS("trackers", "Blocking", "Block ads and trackers", "Drops requests to about 46,000 ad and tracking hosts, plus ad paths on Google, Facebook and X"),
     COOKIE_BANNERS("banners", "Blocking", "Hide cookie pop-ups", "Hides common consent banners and unlocks scrolling"),
+    YOUTUBE_ADS("youtube_ads", "Blocking", "Block YouTube ads", "Removes video, feed and banner ads on YouTube, and clicks through any that slip by"),
+    AD_COSMETIC("hide_ads", "Blocking", "Hide ad spaces", "Removes empty ad boxes and keeps pages working when their ads are blocked"),
     POPUPS("popups", "Blocking", "Block pop-ups", "New windows open only when you click"),
     AUTOPLAY("autoplay", "Blocking", "Block autoplay", "Video and audio start only after you press OK"),
     THIRD_PARTY_COOKIES("tp_cookies", "Tracking", "Block third-party cookies", "Stops sites following you across other sites"),
@@ -118,6 +121,7 @@ enum class Opt(val key: String, val group: String, val title: String, val desc: 
     REFERRER("referrer", "Tracking", "Hide where you came from", "Links to other sites are opened without a referrer"),
     GPC("gpc", "Tracking", "Send Global Privacy Control", "Tells sites not to sell or share your data (also Do Not Track)"),
     FINGERPRINT("fingerprint", "Identity", "Fingerprint protection", "Adds noise to canvas and hides battery, memory and CPU details"),
+    WEBRTC("webrtc", "Identity", "Block WebRTC leaks", "Sites cannot read your local network address; video calls stop working", default = false),
     COMMON_IDENTITY("identity", "Identity", "Common browser identity", "Hides your TV model and WebView build from sites"),
     HTTPS_UPGRADE("https", "Connection", "Upgrade to HTTPS", "Opens http:// pages over https when the site supports it"),
     LOCATION("location", "Device", "Block location", "Sites can never ask for your position"),
@@ -130,6 +134,9 @@ enum class Opt(val key: String, val group: String, val title: String, val desc: 
         get() = when (this) {
             TRACKERS -> Sym.AdOff
             COOKIE_BANNERS -> Sym.Cookie
+            YOUTUBE_ADS -> Sym.SmartDisplay
+            AD_COSMETIC -> Sym.AdsClick
+            WEBRTC -> Sym.WifiOff
             POPUPS -> Sym.Block
             AUTOPLAY -> Sym.PlayArrow
             THIRD_PARTY_COOKIES -> Sym.Cookie

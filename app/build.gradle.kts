@@ -15,8 +15,8 @@ android {
         applicationId = "wishissue.wishybrowser"
         minSdk = 24          // system WebView needs no engine, so older TV boxes work too
         targetSdk = 36
-        versionCode = 11
-        versionName = "4.2.0"
+        versionCode = 13
+        versionName = "4.3.1"
         // English only: fewer strings and resources in the APK.
         androidResources.localeFilters += "en"
     }

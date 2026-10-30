@@ -40,3 +40,7 @@ Thumbs.db
 # Signing keys must never be committed
 *.jks
 *.keystore
+
+# ad-blocking test tooling
+tools/adblock-test/node_modules/
+tools/adblock-test/package-lock.json

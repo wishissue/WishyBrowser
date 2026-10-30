@@ -8,7 +8,7 @@
 Browse the web on your TV with remote-friendly controls, full-screen mode, flexible layouts, built-in download manager, and zero-telemetry privacy protections.
 
 <p>
-  <a href="https://github.com/wishissue/WishyBrowser/releases">Download v4.2.0</a> ·
+  <a href="https://github.com/wishissue/WishyBrowser/releases">Download v4.3.1</a> ·
   <a href="https://github.com/wishissue/WishyBrowser/issues">Report a bug</a> ·
   <a href="https://github.com/wishissue/WishyBrowser">Source code</a> ·
   <a href="https://wishissue.github.io/wishy-apps/donate.html">Donate</a>
@@ -22,7 +22,7 @@ Browse the web on your TV with remote-friendly controls, full-screen mode, flexi
 
 </div>
 
-![Version](https://img.shields.io/badge/Version-4.2.0-0166FF?style=for-the-badge)
+![Version](https://img.shields.io/badge/Version-4.3.1-0166FF?style=for-the-badge)
 ![Android TV](https://img.shields.io/badge/Platform-Android%20TV-3DDC84?style=for-the-badge&logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Made%20with-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
 ![Open Source](https://img.shields.io/badge/Open%20Source-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
@@ -68,7 +68,15 @@ Browse the web on your TV with remote-friendly controls, full-screen mode, flexi
 
 ---
 
-## What's New in v4.2.0
+## What's New in v4.3.1
+
+- **Stronger ad blocking, with a YouTube focus**: ads are removed from YouTube's data before the player sees them (pre-roll, mid-roll, feed and banner ads), with a skip-and-fast-forward fallback and a clean-up of YouTube's "ad blockers not allowed" pop-up. Ad paths on Google, Facebook and X are blocked on top of the 46,000-host list, empty ad boxes are hidden, and blocked ad scripts are replaced by harmless stand-ins so pages keep working.
+- **Shields per site**: one switch (Shields page) turns the ad layer off for a site that breaks.
+- **More privacy**: WebRTC leak blocking (off by default), GPU and audio fingerprint protection, link-ping removal.
+- **YouTube data is cleaned in every way it can arrive**: the page's first data, `fetch()` (JSON and text), `XMLHttpRequest`, and `JSON.parse`, including ads inside the home feed, search results and the side bar, and YouTube's "ad blockers are not allowed" message data.
+- No blocker can promise every ad: YouTube changes its code often, so expect to need updates.
+
+### Earlier: v4.2.0
 
 - **Built-in OkHttp Download Manager**: Foreground service download engine supporting pause, resume, retry, cancel, progress notifications, and "Ask before downloading" privacy prompt.
 - **Full-Screen Mode**: Hide toolbars and system bars completely. Easily reveal the floating toolbar by dragging in from the edge, pushing the D-pad pointer, or pressing `SEARCH` / holding `MENU`.
@@ -106,7 +114,7 @@ TV browsers can be awkward to control with a D-pad remote or bloated with phone-
 ## Install
 
 1. Visit [Wishy Browser Releases](https://github.com/wishissue/WishyBrowser/releases).
-2. Download the latest `v4.2.0` APK (one file for every device).
+2. Download the latest `v4.3.1` APK (one file for every device).
 3. Transfer the APK to your Android TV device and install it.
 
 ---

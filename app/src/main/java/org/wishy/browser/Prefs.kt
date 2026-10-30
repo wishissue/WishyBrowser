@@ -121,6 +121,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("notif_asked", false)
         set(value) = sp.edit().putBoolean("notif_asked", value).apply()
 
+    /** Sites where the ad layer is switched off by the user (for pages that break). Comma-separated hosts. */
+    var allowSites: Set<String>
+        get() = (sp.getString("allow_sites", "") ?: "").split(',').filter { it.isNotBlank() }.toSet()
+        set(value) = sp.edit().putString("allow_sites", value.joinToString(",")).apply()
+
     fun opt(o: Opt): Boolean = sp.getBoolean("opt_" + o.key, o.default)
     fun setOpt(o: Opt, value: Boolean) = sp.edit().putBoolean("opt_" + o.key, value).apply()
 

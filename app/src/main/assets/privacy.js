@@ -1,4 +1,4 @@
-// Wishy privacy layer. The app puts window.__wyCfg = {fp, ref, banners} in front of this file.
+// Wishy privacy layer. The app puts window.__wyCfg = {fp, ref, banners, rtc, ping} in front of this file.
 // Runs at document start when the WebView supports it, otherwise as soon as the page begins loading.
 // Everything is wrapped in try/catch: a failed protection must never break a page.
 (function () {
@@ -63,6 +63,59 @@
       HTMLCanvasElement.prototype.toBlob = function () {
         return origBlob.apply(noisyCopy(this), arguments);
       };
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---- Fingerprint protection, part 2: graphics card name and audio fingerprints ---------------
+  if (C.fp) {
+    try {
+      var seed2 = (Math.random() * 255) | 0;
+      // The "unmasked" vendor and renderer strings identify the exact GPU; every device now reports the same pair.
+      [window.WebGLRenderingContext, window.WebGL2RenderingContext].forEach(function (K) {
+        if (!K || !K.prototype) return;
+        var g = K.prototype.getParameter;
+        K.prototype.getParameter = function (p) {
+          if (p === 37445) return "Google Inc.";
+          if (p === 37446) return "ANGLE (Generic Renderer)";
+          return g.apply(this, arguments);
+        };
+      });
+      // Audio fingerprints read tiny differences in rendered samples; each buffer gets a minute, per-session change.
+      if (window.AudioBuffer && AudioBuffer.prototype.getChannelData) {
+        var gcd = AudioBuffer.prototype.getChannelData;
+        AudioBuffer.prototype.getChannelData = function () {
+          var d = gcd.apply(this, arguments);
+          try {
+            if (!this.__wyN) {
+              this.__wyN = 1;
+              for (var i = 0; i < d.length && i < 32; i++) d[i] += (((seed2 >> (i & 7)) & 1) ? 1 : -1) * 1e-7;
+            }
+          } catch (e) { /* ignore */ }
+          return d;
+        };
+      }
+      def(navigator, "connection", undefined);
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---- WebRTC: sites cannot read your local network address through it (video calls stop working) ----
+  if (C.rtc) {
+    try {
+      ["RTCPeerConnection", "webkitRTCPeerConnection", "RTCSessionDescription", "RTCIceCandidate"].forEach(function (n) { def(window, n, undefined); });
+    } catch (e) { /* ignore */ }
+  }
+
+  // ---- Link pings: <a ping="..."> tells another server about every click; drop it ----------------
+  if (C.ping) {
+    try {
+      var unping = function (ev) {
+        try {
+          var a = ev.target && ev.target.closest ? ev.target.closest("a[ping]") : null;
+          if (a) a.removeAttribute("ping");
+        } catch (e) { /* ignore */ }
+      };
+      document.addEventListener("click", unping, true);
+      document.addEventListener("keydown", function (ev) { if (ev.key === "Enter") unping(ev); }, true);
     } catch (e) { /* ignore */ }
   }
 

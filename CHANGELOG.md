@@ -36,3 +36,19 @@
 - Home clock redesigned: larger time, system 12/24-hour setting, small AM/PM, date and greeting, updates on the minute.
 - Build: one universal APK (the app has no native code, so per-CPU splits were pointless); release signing now uses your own key when WISHY_KEYSTORE settings or the GitHub secrets exist (README > Release signing). Note: the first APK signed with a new key cannot update a copy signed with the old debug key; uninstall once.
 - Size: removed two unused 1.3 MB logo images and shrank the launcher logo from 3464 px (1.3 MB) to 432 px WebP.
+
+# 4.3.0 - ad blocking and privacy
+- YouTube: ad data (adPlacements, playerAds, adSlots) is removed before the player reads it, in the page's first data, in fetch() answers and in JSON.parse, at document start in every frame. Feed, search, banner and companion ads are hidden (desktop and m.youtube.com). Fallback: Skip is clicked and an ad that still starts is muted and run to its end. YouTube's "ad blockers are not allowed" pop-up is removed and the video resumes. YouTube's ad and ad-measurement requests are blocked (/pagead/, /api/stats/ads, /ptracking, /get_midroll_, ad_break).
+- Other sites: ad containers are hidden (new switch "Hide ad spaces"); bait class names that make sites show "turn off your ad blocker" walls are left alone on purpose; adsbygoogle and googletag are replaced by empty stand-ins so blocked ads do not break page scripts.
+- Network: ad paths on google.com, Facebook (pixel), X and anywhere /pagead/ads and /gampad/ads, on top of the host list.
+- Shields on this site: a per-site switch for pages broken by blocking.
+- New privacy switches: Block YouTube ads, Hide ad spaces, Block WebRTC leaks (off by default). Fingerprint protection now also covers the graphics card name and audio. Link pings (<a ping>) are removed when "Clean tracking links" is on.
+- The old YouTube skipper and ad CSS in wishy.js moved into adblock.js.
+
+# 4.3.1 - YouTube ad blocking rebuilt
+- YouTube: ad data is now removed on every path it can arrive by: the page's first data (player response and home data), fetch() as JSON and as text, XMLHttpRequest (text and JSON), and JSON.parse. Before, only the first player response and fetch().json() were covered, so m.youtube.com-style XHR answers and text answers still carried ads.
+- YouTube: ads are removed from the data deep inside feed, search, side-bar and masthead answers (not only hidden afterwards), and sections that only held ads are dropped. The ad CSS stays as a second net.
+- YouTube: the "ad blockers are not allowed" message data is removed before it can show, and nothing may record that an ad blocker was found.
+- YouTube: the fallback reacts on the video's own events instead of waiting up to 250 ms, and it never seeks a long video (the old fallback could jump a whole video to its end when YouTube left the ad flag set).
+- Other sites: more ad containers and ad-verification frames hidden (amp-ad, ad-verification and ad-exchange iframes); more Google ad paths blocked (/pagead/ anywhere, /pcs/activeview, GPT scripts).
+- Tests: tools/adblock-test runs the ad script in a simulated browser against YouTube-shaped data (64 checks) and checks the request rules on a plain JVM (52 checks). AdRules no longer depends on android.net.Uri so it can be tested without a device.

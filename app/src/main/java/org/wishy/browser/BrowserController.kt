@@ -313,6 +313,7 @@ class BrowserController(
     }
 
     private var docScript: ScriptHandler? = null
+    private var adDocScript: ScriptHandler? = null
     private val docStartOk: Boolean get() = WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
 
     private val privacyJs: String by lazy { runCatching { activity.assets.open("privacy.js").bufferedReader().use { it.readText() } }.getOrDefault("") }
@@ -320,8 +321,41 @@ class BrowserController(
     /** The privacy script with this moment's switches in front of it. Empty when nothing needs injecting. */
     private fun privacyScript(): String {
         val fp = has(Opt.FINGERPRINT); val ref = has(Opt.REFERRER); val ban = has(Opt.COOKIE_BANNERS)
-        if (!(fp || ref || ban) || privacyJs.isEmpty()) return ""
-        return "window.__wyCfg={fp:$fp,ref:$ref,banners:$ban};" + privacyJs
+        val rtc = has(Opt.WEBRTC); val ping = has(Opt.CLEAN_LINKS)
+        if (!(fp || ref || ban || rtc || ping) || privacyJs.isEmpty()) return ""
+        return "window.__wyCfg={fp:$fp,ref:$ref,banners:$ban,rtc:$rtc,ping:$ping};" + privacyJs
+    }
+
+    private val adJs: String by lazy { runCatching { activity.assets.open("adblock.js").bufferedReader().use { it.readText() } }.getOrDefault("") }
+
+    /** Hosts where the user switched shields off (kept in memory; saved in Prefs). */
+    @Volatile private var allowedHosts: Set<String> = prefs.allowSites
+
+    /** The page being shown, for the per-site list. */
+    private val pageHost: String get() = runCatching { Uri.parse(url).host?.lowercase() }.getOrNull() ?: ""
+
+    /** The ad script with this moment's switches in front of it. Empty when every ad switch is off. */
+    private fun adScript(): String {
+        val yt = has(Opt.YOUTUBE_ADS); val cos = has(Opt.AD_COSMETIC)
+        if (!(yt || cos) || adJs.isEmpty()) return ""
+        val allow = allowedHosts.joinToString(",") { "\"" + it.replace("\"", "") + "\"" }
+        return "window.__wyAd={yt:$yt,cos:$cos,allow:[$allow]};" + adJs
+    }
+
+    /** Shields for the page on screen: on unless the user switched them off for this site. */
+    val siteShieldsOn: Boolean get() = !allowedHosts.contains(pageHost)
+    val canToggleSiteShields: Boolean get() = !atHome && pageHost.isNotEmpty()
+
+    fun toggleSiteShields() {
+        val h = pageHost
+        if (h.isEmpty()) return
+        allowedHosts = if (allowedHosts.contains(h)) allowedHosts - h else allowedHosts + h
+        prefs.allowSites = allowedHosts
+        optTick++
+        applyOpts(web)
+        val on = !allowedHosts.contains(h)
+        notify(if (on) NoteKind.SUCCESS else NoteKind.WARNING, if (on) "Shields on for $h" else "Shields off for $h", "Reloading the page", Sym.ShieldFilled)
+        reload()
     }
 
     /** Pushes every switch into the WebView. Runs for each new WebView and whenever a switch changes. */
@@ -336,9 +370,12 @@ class BrowserController(
         s.userAgentString = Privacy.userAgent(activity, prefs.desktopMode, has(Opt.COMMON_IDENTITY))
         CookieManager.getInstance().setAcceptThirdPartyCookies(w, !has(Opt.THIRD_PARTY_COOKIES))
         runCatching { docScript?.remove() }
-        docScript = null
+        runCatching { adDocScript?.remove() }
+        docScript = null; adDocScript = null
         val js = privacyScript()
         if (js.isNotEmpty() && docStartOk) docScript = runCatching { WebViewCompat.addDocumentStartJavaScript(w, js, setOf("*")) }.getOrNull()
+        val ads = adScript()
+        if (ads.isNotEmpty() && docStartOk) adDocScript = runCatching { WebViewCompat.addDocumentStartJavaScript(w, ads, setOf("*")) }.getOrNull()
     }
 
     fun setOpt(o: Opt, on: Boolean) {
@@ -346,7 +383,8 @@ class BrowserController(
         enabledOpts = if (on) enabledOpts + o else enabledOpts - o
         optTick++
         applyOpts(web)
-        val later = o == Opt.FINGERPRINT || o == Opt.REFERRER || o == Opt.COOKIE_BANNERS || o == Opt.COMMON_IDENTITY || o == Opt.LITE
+        val later = o == Opt.FINGERPRINT || o == Opt.REFERRER || o == Opt.COOKIE_BANNERS || o == Opt.COMMON_IDENTITY || o == Opt.LITE ||
+            o == Opt.YOUTUBE_ADS || o == Opt.AD_COSMETIC || o == Opt.WEBRTC || o == Opt.CLEAN_LINKS
         notify(if (on) NoteKind.SUCCESS else NoteKind.WARNING, "${o.title}: ${if (on) "on" else "off"}", if (later && !atHome) "Applies to the next page you open" else null, o.icon)
         if (o == Opt.LITE && !atHome) web.reload()
     }
@@ -890,10 +928,18 @@ class BrowserController(
     /** Page lifecycle, request blocking, https upgrade and tracking-parameter removal. */
     private val client = object : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
-            if (request.isForMainFrame || !has(Opt.TRACKERS) || !Blocklist.isBlocked(request.url.host)) return null
+            if (request.isForMainFrame) return null
+            val trackers = has(Opt.TRACKERS)
+            val yt = has(Opt.YOUTUBE_ADS)
+            if (!trackers && !yt) return null
+            val target = request.url
+            // Shields off for this site: leave its requests alone.
+            if (allowedHosts.isNotEmpty() && allowedHosts.contains(pageHost)) return null
+            val hit = (trackers && Blocklist.isBlocked(target.host)) || AdRules.matches(target.host, target.encodedPath, target.encodedQuery, yt, trackers)
+            if (!hit) return null
             blockedReq.incrementAndGet()
             if (publishQueued.compareAndSet(false, true)) ui.postDelayed({ publishQueued.set(false); publishBlocked() }, 350L)
-            return Privacy.emptyResponse()
+            return if (AdRules.wantsJson(target.encodedPath)) Privacy.emptyJson() else Privacy.emptyResponse()
         }
 
         override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
@@ -980,7 +1026,10 @@ class BrowserController(
         if (!u.startsWith("http")) return
         view.evaluateJavascript(wishyJs, null)
         // Without document-start scripts the privacy layer runs as early as it can (it guards against running twice).
-        if (!docStartOk) privacyScript().let { if (it.isNotEmpty()) view.evaluateJavascript(it, null) }
+        if (!docStartOk) {
+            privacyScript().let { if (it.isNotEmpty()) view.evaluateJavascript(it, null) }
+            adScript().let { if (it.isNotEmpty()) view.evaluateJavascript(it, null) }
+        }
     }
 
     /** Dialogs, permissions, pop-ups, file upload and full-screen video. */
