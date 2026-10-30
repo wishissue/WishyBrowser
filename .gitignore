@@ -36,3 +36,7 @@ Thumbs.db
 # Signing files
 *.keystore
 *.jks
+
+# Signing keys must never be committed
+*.jks
+*.keystore

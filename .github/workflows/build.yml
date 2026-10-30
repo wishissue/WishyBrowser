@@ -23,7 +23,21 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      # Signs releases with your own key when the repository secrets exist; otherwise the debug key is used.
+      - name: Prepare release signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.WISHY_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/wishy.jks"
+            echo "WISHY_KEYSTORE=$RUNNER_TEMP/wishy.jks" >> "$GITHUB_ENV"
+          fi
+
       - name: Build universal APK
+        env:
+          WISHY_KEYSTORE_PASSWORD: ${{ secrets.WISHY_KEYSTORE_PASSWORD }}
+          WISHY_KEY_ALIAS: ${{ secrets.WISHY_KEY_ALIAS }}
+          WISHY_KEY_PASSWORD: ${{ secrets.WISHY_KEY_PASSWORD }}
         run: ./gradlew --no-daemon assembleRelease
 
       - name: Generate Checksums

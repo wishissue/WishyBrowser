@@ -21,20 +21,28 @@ android {
         androidResources.localeFilters += "en"
     }
 
-    // ABI splits to produce 3 lightweight, architecture-optimized release APKs (ARM64, ARMv7, x86_64)
-    splits {
-        abi {
-            isEnable = true
-            reset()
-            include("arm64-v8a", "armeabi-v7a", "x86_64")
-            isUniversalApk = false
+    // One universal APK: the app has no native code, so per-CPU splits would only produce identical files.
+
+    // Release signing. Set these (environment or gradle.properties) to sign with your own key:
+    //   WISHY_KEYSTORE (path to the .jks), WISHY_KEYSTORE_PASSWORD, WISHY_KEY_ALIAS, WISHY_KEY_PASSWORD
+    // Without them the build falls back to the debug key, so local builds still work.
+    fun setting(name: String): String? = System.getenv(name) ?: providers.gradleProperty(name).orNull
+    signingConfigs {
+        val keystore = setting("WISHY_KEYSTORE")
+        if (keystore != null && File(keystore).exists()) {
+            create("release") {
+                storeFile = File(keystore)
+                storePassword = setting("WISHY_KEYSTORE_PASSWORD")
+                keyAlias = setting("WISHY_KEY_ALIAS")
+                keyPassword = setting("WISHY_KEY_PASSWORD")
+            }
         }
     }
 
     // Minified and shrunk release build for maximum stability and minimal size
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

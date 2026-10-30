@@ -106,7 +106,7 @@ TV browsers can be awkward to control with a D-pad remote or bloated with phone-
 ## Install
 
 1. Visit [Wishy Browser Releases](https://github.com/wishissue/WishyBrowser/releases).
-2. Download the latest `v4.2.0` APK available for your device.
+2. Download the latest `v4.2.0` APK (one file for every device).
 3. Transfer the APK to your Android TV device and install it.
 
 ---
@@ -117,6 +117,16 @@ TV browsers can be awkward to control with a D-pad remote or bloated with phone-
 
 - Android Studio and Android SDK
 - JDK 17 or newer
+
+### Release signing
+
+Updates only install over an existing copy when both APKs are signed with the same key. Create a key once and keep it safe:
+
+```bash
+keytool -genkeypair -v -keystore wishy.jks -alias wishy -keyalg RSA -keysize 4096 -validity 10000
+```
+
+Locally, set `WISHY_KEYSTORE`, `WISHY_KEYSTORE_PASSWORD`, `WISHY_KEY_ALIAS` and `WISHY_KEY_PASSWORD` (environment or `~/.gradle/gradle.properties`). On GitHub, add the repository secrets `WISHY_KEYSTORE_BASE64` (`base64 -w0 wishy.jks`), `WISHY_KEYSTORE_PASSWORD`, `WISHY_KEY_ALIAS` and `WISHY_KEY_PASSWORD`. Without them the debug key is used. Never commit the `.jks` file.
 
 ### Build Release APK
 

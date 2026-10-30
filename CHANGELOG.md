@@ -34,3 +34,5 @@
 - Fixed: the home-screen clock and any text outside a card was black on dark themes; the default text colour now follows the theme.
 - Removed the gradient and the drifting shapes from the home screen, the gradient banner on update/donate cards, and the gradient on page-preview placeholders.
 - Home clock redesigned: larger time, system 12/24-hour setting, small AM/PM, date and greeting, updates on the minute.
+- Build: one universal APK (the app has no native code, so per-CPU splits were pointless); release signing now uses your own key when WISHY_KEYSTORE settings or the GitHub secrets exist (README > Release signing). Note: the first APK signed with a new key cannot update a copy signed with the old debug key; uninstall once.
+- Size: removed two unused 1.3 MB logo images and shrank the launcher logo from 3464 px (1.3 MB) to 432 px WebP.
