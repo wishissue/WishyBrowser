@@ -74,7 +74,7 @@ fun MenuSheet(c: BrowserController) {
                 ) {
                     item {
                         Column(Modifier.padding(bottom = 4.dp)) {
-                            Text("Wishy Browser", style = MaterialTheme.typography.titleLarge, fontFamily = org.wishy.browser.ui.theme.BagelFatOne)
+                            Text("Wishy Browse", style = MaterialTheme.typography.titleLarge, fontFamily = org.wishy.browser.ui.theme.BagelFatOne)
                             Text("Version ${c.versionName}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }

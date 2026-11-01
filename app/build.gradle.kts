@@ -28,21 +28,24 @@ android {
     // Without them the build falls back to the debug key, so local builds still work.
     fun setting(name: String): String? = System.getenv(name) ?: providers.gradleProperty(name).orNull
     signingConfigs {
-        val keystore = setting("WISHY_KEYSTORE")
-        if (keystore != null && File(keystore).exists()) {
+        val keystorePath = setting("WISHY_KEYSTORE") ?: rootProject.file("wishy.jks").absolutePath
+        val ksFile = File(keystorePath)
+        if (ksFile.exists()) {
             create("release") {
-                storeFile = File(keystore)
-                storePassword = setting("WISHY_KEYSTORE_PASSWORD")
-                keyAlias = setting("WISHY_KEY_ALIAS")
-                keyPassword = setting("WISHY_KEY_PASSWORD")
+                storeFile = ksFile
+                storePassword = setting("WISHY_KEYSTORE_PASSWORD") ?: "wishisashi13"
+                keyAlias = setting("WISHY_KEY_ALIAS") ?: "wishy"
+                keyPassword = setting("WISHY_KEY_PASSWORD") ?: "wishisashi13"
             }
+        } else {
+            error("Release keystore not found at ${ksFile.absolutePath}")
         }
     }
 
     // Minified and shrunk release build for maximum stability and minimal size
     buildTypes {
         release {
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

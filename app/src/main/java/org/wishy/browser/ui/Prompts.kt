@@ -84,7 +84,7 @@ fun PromptHost(c: BrowserController) {
     if (c.showOnboarding && c.prompt == null) {
         AlertDialog(
             onDismissRequest = { c.dismissOnboarding() },
-            title = { Text("How Wishy Browser works") },
+            title = { Text("How Wishy Browse works") },
             text = {
                 Text(
                     "Type in the search bar to search or open a site.\n\n" +

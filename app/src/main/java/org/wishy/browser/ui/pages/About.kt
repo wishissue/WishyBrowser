@@ -28,7 +28,7 @@ fun DeveloperPage(c: BrowserController) {
             item {
                 Column(Modifier.padding(bottom = 12.dp).reveal(0)) {
                     Text("wishissue", style = MaterialTheme.typography.headlineLargeEmphasized)
-                    Text("Maker of Wishy Browser", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Maker of Wishy Browse", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         "A fast, private browser built for the big screen.",
                         style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp)
@@ -46,7 +46,7 @@ private class Credit(val name: String, val role: String, val license: String, va
 
 private val CREDITS = listOf(
     Credit("Android System WebView", "The browser engine (Chromium), already on your TV", "BSD-3-Clause", "https://www.chromium.org/"),
-    Credit("Wishy Browser (original)", "The Gecko-based version this one is rebuilt from", "GPL-3.0", "https://github.com/wishissue/WishyBrowser"),
+    Credit("Wishy Browse (original)", "The Gecko-based version this one is rebuilt from", "GPL-3.0", "https://github.com/wishissue/WishyBrowser"),
     Credit("Orion Store", "Design inspiration and theme seed colours", "GPL-3.0", "https://github.com/RookieEnough/Orion-Store"),
     Credit("Jetpack Compose and Material 3", "The interface toolkit", "Apache-2.0", "https://developer.android.com/compose"),
     Credit("Material Color Utilities", "Generates the 45 colour themes", "Apache-2.0", "https://github.com/material-foundation/material-color-utilities"),
@@ -104,7 +104,7 @@ fun DonatePage(c: BrowserController) {
                 Box(
                     Modifier.reveal(1).size(264.dp).clip(RoundedCornerShape(32.dp)).background(androidx.compose.ui.graphics.Color.White).padding(14.dp)
                 ) {
-                    Image(painterResource(R.drawable.qr_donate), "QR code for the Wishy Browser donation page", Modifier.fillMaxSize())
+                    Image(painterResource(R.drawable.qr_donate), "QR code for the Wishy Browse donation page", Modifier.fillMaxSize())
                 }
             }
             item { Text(DONATE_URL.removePrefix("https://"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary) }

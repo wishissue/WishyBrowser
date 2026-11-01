@@ -87,7 +87,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Lets the OS offer Wishy Browser as a handler for plain web
+            <!-- Lets the OS offer Wishy Browse as a handler for plain web
                  links tapped in other apps, and (on devices that support it)
                  as a choice for "default browser". -->
             <intent-filter>

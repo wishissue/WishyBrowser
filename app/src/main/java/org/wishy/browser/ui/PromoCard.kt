@@ -110,7 +110,7 @@ private fun Banner(icon: androidx.compose.ui.graphics.vector.ImageVector) {
 @Composable
 private fun UpdateBody(p: Promo.Update, c: BrowserController, focus: FocusRequester) {
     val cs = MaterialTheme.colorScheme
-    Text("A new Wishy Browser is out", style = MaterialTheme.typography.headlineSmallEmphasized, textAlign = TextAlign.Center, modifier = Modifier.reveal(0))
+    Text("A new Wishy Browse is out", style = MaterialTheme.typography.headlineSmallEmphasized, textAlign = TextAlign.Center, modifier = Modifier.reveal(0))
     Surface(color = cs.secondaryContainer, shape = CircleShape, modifier = Modifier.padding(top = 12.dp).reveal(1)) {
         Text(
             "${p.current}  →  ${p.version}", Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
