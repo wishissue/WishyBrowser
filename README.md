@@ -1,7 +1,7 @@
 <div align="center">
-<img src="images/icon.png" alt="Wishy Browser app icon" width="128">
+<img src="images/icon.png" alt="Wishy Browse app icon" width="128">
 
-# Wishy Browser
+# Wishy Browse
 
 **A lightweight, privacy-focused browser made for Android TV.**
 
@@ -17,7 +17,7 @@ Browse the web on your TV with remote-friendly controls, full-screen mode, flexi
 <div align="center">
 
 <a href="https://wishissue.github.io/wishy-apps/donate.html">
-  <img src="https://img.shields.io/badge/%E2%99%A5%20SUPPORT%20WISHY%20BROWSER-0166FF?style=for-the-badge&labelColor=001B3E" alt="Support Wishy Browser" width="420">
+  <img src="https://img.shields.io/badge/%E2%99%A5%20SUPPORT%20WISHY%20BROWSE-0166FF?style=for-the-badge&labelColor=001B3E" alt="Support Wishy Browse" width="420">
 </a>
 
 </div>
@@ -39,27 +39,27 @@ Browse the web on your TV with remote-friendly controls, full-screen mode, flexi
   <tr>
     <td align="center" width="50%">
       <b>Home Screen & Clock</b><br>
-      <img src="images/home.png" alt="Wishy Browser Home Screen" width="100%">
+      <img src="images/home.png" alt="Wishy Browse Home Screen" width="100%">
     </td>
     <td align="center" width="50%">
       <b>Quick Menu & Actions</b><br>
-      <img src="images/menu.png" alt="Wishy Browser Menu Sheet" width="100%">
+      <img src="images/menu.png" alt="Wishy Browse Menu Sheet" width="100%">
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
       <b>Privacy Protections & Search</b><br>
-      <img src="images/privacy.png" alt="Wishy Browser Privacy Page" width="100%">
+      <img src="images/privacy.png" alt="Wishy Browse Privacy Page" width="100%">
     </td>
     <td align="center" width="50%">
       <b>Settings & Layout Options</b><br>
-      <img src="images/settings.png" alt="Wishy Browser Settings Page" width="100%">
+      <img src="images/settings.png" alt="Wishy Browse Settings Page" width="100%">
     </td>
   </tr>
   <tr>
     <td align="center" width="100%" colspan="2">
       <b>Download Manager</b><br>
-      <img src="images/downloads.png" alt="Wishy Browser Download Manager" width="60%">
+      <img src="images/downloads.png" alt="Wishy Browse Download Manager" width="60%">
     </td>
   </tr>
 </table>
@@ -86,9 +86,9 @@ Browse the web on your TV with remote-friendly controls, full-screen mode, flexi
 
 ---
 
-## Why Wishy Browser?
+## Why Wishy Browse?
 
-TV browsers can be awkward to control with a D-pad remote or bloated with phone-centric clutter. Wishy Browser is engineered specifically for Android TV:
+TV browsers can be awkward to control with a D-pad remote or bloated with phone-centric clutter. Wishy Browse is engineered specifically for Android TV:
 
 - **Made for TV** — Effortless remote control navigation and smart D-pad pointer snapping.
 - **Zero Telemetry & Private** — No user tracking, no accounts, and "Clear browsing data now" session cleanup.
@@ -113,7 +113,7 @@ TV browsers can be awkward to control with a D-pad remote or bloated with phone-
 
 ## Install
 
-1. Visit [Wishy Browser Releases](https://github.com/wishissue/WishyBrowser/releases).
+1. Visit [Wishy Browse Releases](https://github.com/wishissue/WishyBrowser/releases).
 2. Download the latest `v4.3.1` APK (one file for every device).
 3. Transfer the APK to your Android TV device and install it.
 
@@ -154,7 +154,7 @@ See the [`LICENSE`](LICENSE) file in this repository for licensing details.
 
 <div align="center">
 
-**Wishy Browser — the web, on your TV.**
+**Wishy Browse — the web, on your TV.**
 
 [GitHub repository](https://github.com/wishissue/WishyBrowser) · [Releases](https://github.com/wishissue/WishyBrowser/releases) · [Issues](https://github.com/wishissue/WishyBrowser/issues)
 
