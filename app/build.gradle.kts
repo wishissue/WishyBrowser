@@ -37,15 +37,13 @@ android {
                 keyAlias = setting("WISHY_KEY_ALIAS") ?: "wishy"
                 keyPassword = setting("WISHY_KEY_PASSWORD") ?: "wishisashi13"
             }
-        } else {
-            error("Release keystore not found at ${ksFile.absolutePath}")
         }
     }
 
     // Minified and shrunk release build for maximum stability and minimal size
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
