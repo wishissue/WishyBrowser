@@ -1,161 +1,297 @@
-<div align="center">
-<img src="images/icon.png" alt="Wishy Browser app icon" width="128">
+> **4.0 note:** the engine was swapped from GeckoView to Android WebView to shrink the app. Parts of the feature list below that mention Gecko, uBlock Origin, DoH or fingerprint resistance describe 3.x. See [PRIVACY_REPORT.md](PRIVACY_REPORT.md) and [BUILD_AND_TEST.md](BUILD_AND_TEST.md) for what 4.0 actually does.
 
-# Wishy Browser
-
-**A lightweight, privacy-focused browser made for Android TV.**
-
-Browse the web on your TV with remote-friendly controls, full-screen mode, flexible layouts, built-in download manager, and zero-telemetry privacy protections.
-
-<p>
-  <a href="https://github.com/wishissue/WishyBrowser/releases">Download v4.3.1</a> ·
-  <a href="https://github.com/wishissue/WishyBrowser/issues">Report a bug</a> ·
-  <a href="https://github.com/wishissue/WishyBrowser">Source code</a> ·
-  <a href="https://wishissue.github.io/wishy-apps/donate.html">Donate</a>
+<p align="center">
+  <img src="images/cat.png" alt="Wishy Browse logo" width="140">
 </p>
 
-<div align="center">
+<h1 align="center">Wishy Browse</h1>
 
-<a href="https://wishissue.github.io/wishy-apps/donate.html">
-  <img src="https://img.shields.io/badge/%E2%99%A5%20SUPPORT%20WISHY%20BROWSER-0166FF?style=for-the-badge&labelColor=001B3E" alt="Support Wishy Browser" width="420">
-</a>
+<p align="center">
+  <b>A minimal, privacy-first web browser for Android TV.</b><br>
+  Built on the device's Android System WebView (4.0). Designed for the remote. No history, no telemetry, no accounts.
+</p>
 
-</div>
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Android%20TV%20%7C%20Fire%20TV-3ddc84?logo=android&logoColor=white" alt="Platform">
+  <img src="https://img.shields.io/badge/engine-Android%20WebView-3ddc84?logo=android&logoColor=white" alt="Engine">
+  <img src="https://img.shields.io/badge/language-Kotlin-7f52ff?logo=kotlin&logoColor=white" alt="Kotlin">
+  <img src="https://img.shields.io/badge/UI-Material%203-6750a4?logo=materialdesign&logoColor=white" alt="Material 3">
+  <img src="https://img.shields.io/badge/license-GPLv3-blue" alt="License">
+</p>
 
-![Version](https://img.shields.io/badge/Version-4.3.1-0166FF?style=for-the-badge)
-![Android TV](https://img.shields.io/badge/Platform-Android%20TV-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Kotlin](https://img.shields.io/badge/Made%20with-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
-![Open Source](https://img.shields.io/badge/Open%20Source-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
+<p align="center">
+  <sub>Wishy is free and ad-free. A tip keeps the cat fed 🐱</sub><br><br>
+  <a href="https://ko-fi.com/wishismachine"><img src="https://img.shields.io/badge/%E2%98%95-Buy%20Wishy%20a%20coffee-FFF1DC?style=for-the-badge&labelColor=FF8A65" alt="Buy Wishy a coffee on Ko-fi"></a>
+  &nbsp;
+  <a href="https://wishissue.github.io/wishy-apps/donate.html"><img src="https://img.shields.io/badge/%F0%9F%AA%99-Tip%20a%20little%20USDT-E3F6EC?style=for-the-badge&labelColor=26A17B" alt="Tip Wishy with USDT"></a>
+</p>
 
-</div>
+> **New in 3.0:** the whole interface is rebuilt in Jetpack Compose with Material 3 Expressive (design inspired by [Orion Store](https://github.com/RookieEnough/Orion-Store)): a new home screen, floating toolbar, side menu, 45 colour themes (dark, light, dusk, AMOLED), 45 animated cursors, a Shields page that shows whether the ad blocker is really running, and Developer, Credits and Donate pages. See [CHANGELOG.md](CHANGELOG.md).
+
+> **Heads up:** this is a small personal project, tested on an emulator and a phone, with real-TV testing still growing. Some things may not work on your TV. Please read [Known issues and limits](#known-issues-and-limits) and [tell me](#contact-and-bug-reports) if you hit a problem.
 
 ---
 
 ## Screenshots
 
-<div align="center">
+### Home
+![Wishy Browse home screen](images/wishy%20home.png)
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <b>Home Screen & Clock</b><br>
-      <img src="images/home.png" alt="Wishy Browser Home Screen" width="100%">
-    </td>
-    <td align="center" width="50%">
-      <b>Quick Menu & Actions</b><br>
-      <img src="images/menu.png" alt="Wishy Browser Menu Sheet" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="50%">
-      <b>Privacy Protections & Search</b><br>
-      <img src="images/privacy.png" alt="Wishy Browser Privacy Page" width="100%">
-    </td>
-    <td align="center" width="50%">
-      <b>Settings & Layout Options</b><br>
-      <img src="images/settings.png" alt="Wishy Browser Settings Page" width="100%">
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="100%" colspan="2">
-      <b>Download Manager</b><br>
-      <img src="images/downloads.png" alt="Wishy Browser Download Manager" width="60%">
-    </td>
-  </tr>
-</table>
+### Search
+![Searching in Wishy Browse](images/wishyserch.png)
 
-</div>
+### Video on the big screen
+![Watching YouTube in Wishy Browse](images/youtubewishy.png)
 
 ---
 
-## What's New in v4.3.1
+## Why Wishy?
 
-- **Stronger ad blocking, with a YouTube focus**: ads are removed from YouTube's data before the player sees them (pre-roll, mid-roll, feed and banner ads), with a skip-and-fast-forward fallback and a clean-up of YouTube's "ad blockers not allowed" pop-up. Ad paths on Google, Facebook and X are blocked on top of the 46,000-host list, empty ad boxes are hidden, and blocked ad scripts are replaced by harmless stand-ins so pages keep working.
-- **Shields per site**: one switch (Shields page) turns the ad layer off for a site that breaks.
-- **More privacy**: WebRTC leak blocking (off by default), GPU and audio fingerprint protection, link-ping removal.
-- **YouTube data is cleaned in every way it can arrive**: the page's first data, `fetch()` (JSON and text), `XMLHttpRequest`, and `JSON.parse`, including ads inside the home feed, search results and the side bar, and YouTube's "ad blockers are not allowed" message data.
-- No blocker can promise every ad: YouTube changes its code often, so expect to need updates.
+Most TV browsers are either bloated or track you. Wishy does one thing: gives you a search bar, a page, and just enough controls to be comfortable from the couch.
 
-### Earlier: v4.2.0
-
-- **Built-in OkHttp Download Manager**: Foreground service download engine supporting pause, resume, retry, cancel, progress notifications, and "Ask before downloading" privacy prompt.
-- **Full-Screen Mode**: Hide toolbars and system bars completely. Easily reveal the floating toolbar by dragging in from the edge, pushing the D-pad pointer, or pressing `SEARCH` / holding `MENU`.
-- **Flexible Toolbar Positions**: Position the toolbar on the **Top, Bottom, Left, or Right** of your screen (*Settings > Layout*).
-- **15 Built-in Privacy Protections**: Block ads/trackers, hide cookie pop-ups, block third-party cookies, clean tracking links, strip referrers, send GPC/DNT, fingerprint noise, and force HTTPS upgrades.
-- **Wishy Blue Palette & Design**: Redesigned M3 Expressive theme with Plus Jakarta Sans interface typography and Bagel Fat One title branding.
-
----
-
-## Why Wishy Browser?
-
-TV browsers can be awkward to control with a D-pad remote or bloated with phone-centric clutter. Wishy Browser is engineered specifically for Android TV:
-
-- **Made for TV** — Effortless remote control navigation and smart D-pad pointer snapping.
-- **Zero Telemetry & Private** — No user tracking, no accounts, and "Clear browsing data now" session cleanup.
-- **Custom Download Manager** — Download files directly to your TV's Downloads directory with OkHttp.
-- **Open Source** — Transparent codebase, open issues, and active community development.
+- **Private by default.** Every session runs in private mode. Nothing is written to disk.
+- **Enhanced Security.** HTTPS upgrades and a built-in native ad and tracker blocker.
+- **Made for the remote.** Advanced spatial navigation for D-pad, plus a magnetic virtual mouse pointer.
+- **Small and auditable.** One Activity, a Jetpack Compose interface, no tracking SDKs.
 
 ---
 
 ## Features
 
-- **Remote-Friendly Navigation**: D-pad focus handling with cursor snapping to clickable page links.
-- **Pointer Mode**: Smooth pointer for websites that require mouse/touch interaction.
-- **Download Hub**: Manage file downloads with pause, resume, and progress notifications.
-- **Full-Screen Video**: Expand web video players to full screen with remote control support.
-- **Search Engine Selection**: Choose between DuckDuckGo, Startpage, Brave, Qwant, Mojeek, Ecosia, Google, and Bing.
-- **Reader View**: Convert articles into clean, distraction-free text.
-- **Customizable Themes**: Palette customization including dusk, dark, light, and OLED black modes.
+### Privacy and security
 
-> Website compatibility depends on the device's Android System WebView version. Streaming services requiring specific DRM may vary by hardware.
+| Feature | Details |
+| --- | --- |
+| **Tracker and ad blocking** | Enhanced Tracking Protection set to *Strict*, plus a bundled **uBlock Origin** extension |
+| **HTTPS-Only Mode** | Upgrades all HTTP connections to HTTPS for better security |
+| **DNS-over-HTTPS** | Uses a secure DNS resolver (`dns.google`) with system fallback |
+| **Anti-fingerprinting** | Normalizes fonts, canvas, timezone and other identifying surfaces |
+| **Cookie protection** | Third-party and tracker cookies are rejected |
+| **No history** | Private-browsing mode for every session, nothing persists across launches |
+| **No telemetry** | No Glean, no crash reporter, no analytics SDK |
+| **Global Privacy Control** | Every site is told not to sell or share your visit |
+| **Clean links** | Tracking parameters (`utm_*`, `fbclid` and similar) are stripped from links |
+| **Nothing else phones home** | Telemetry, studies, push messaging, captive-portal checks, notifications and location are switched off. See [Privacy: what still connects out](#privacy-what-still-connects-out) for the few things that still do |
+| **No proprietary code** | Google Play Services (normally pulled in by GeckoView for passkeys) is left out. The APK contains only open-source components |
+| **No accounts** | No sign-in and no Firefox Account or Sync code |
+
+### Browsing
+
+- **Smart address bar:** `192.168.1.10:8080` opens over HTTP (routers, NAS, Plex), domains open over HTTPS, and anything else becomes a search.
+- **Bookmarks:** star button, remote-friendly list, duplicate-safe, stored only on your device.
+- **Menu:** back, forward, reload, home, custom home page, desktop-site toggle, and text size (100% to 200%).
+- **Fullscreen video:** the bar hides and Back exits fullscreen.
+- **Reader View:** detection of article pages with a one-tap high-contrast reader mode.
+- **Load progress line:** tells you a slow page from a dead one.
+- **New-tab links:** links that try to open a new window load in the current tab instead.
+
+### TV-first design
+
+- Material 3 dark theme with a solid background (no feeds, wallpapers or recommendations).
+- **Overscan safety:** 5% UI inset from screen edges for reliable TV display compatibility.
+- White focus outline on every button the remote lands on.
+- Visible cursor on both light and dark pages with **magnetic snapping**.
 
 ---
 
-## Install
+## Using it with a remote
 
-1. Visit [Wishy Browser Releases](https://github.com/wishissue/WishyBrowser/releases).
-2. Download the latest `v4.3.1` APK (one file for every device).
-3. Transfer the APK to your Android TV device and install it.
+| Do this | To get this |
+| --- | --- |
+| **★** button in the address bar | Bookmark or un-bookmark the current page (star turns yellow when saved) |
+| **Bookmarks** button (or the remote's BOOKMARK key) | Open the list: **OK** opens, **Right** deletes, **Back** closes |
+| **⋮** button | Menu: Back, Forward, Reload, Home, *Set this page as home*, Desktop site on/off, Text size, Exit |
+| **MENU** key or pointer button | Toggle **pointer mode**: D-pad moves the cursor, **OK** clicks, hold a direction to speed up |
+| Cursor pushed to the top or bottom edge | Scrolls the page; push **Up** at the very top to reach the address bar |
+| **CH+ / CH−** or **Page Up / Down** | Scroll a screenful |
+| **BACK** | Closes fullscreen video, then pointer mode, then goes back a page, then jumps to the address bar. Press Back again to exit |
+
+**Keyboard shortcuts:** `Ctrl+D` bookmark · `Ctrl+B` bookmarks · `Ctrl+L` address bar · `Ctrl+R` / `F5` reload
+
+> **Tip:** TV-optimized sites work with the D-pad out of the box. For ordinary desktop or mobile sites, press **MENU** to switch on the pointer.
 
 ---
 
-## Build from Source
+## Getting started
 
-### Requirements
+### Easiest: let GitHub build it for you
 
-- Android Studio and Android SDK
-- JDK 17 or newer
+Push the project to GitHub. The included workflow (`.github/workflows/build.yml`) builds the APK on every push. Open the **Actions** tab, pick the latest run and download **WishyBrowser-apk**. Push a tag such as `v2.1.0` and the APK is also attached to a GitHub Release.
 
-### Release signing
+### Build it yourself (one click)
 
-Updates only install over an existing copy when both APKs are signed with the same key. Create a key once and keep it safe:
+Requirements: the latest stable **Android Studio** (it bundles JDK 21 and offers to install the Android SDK 37 platform on first sync) and an internet connection.
 
-```bash
-keytool -genkeypair -v -keystore wishy.jks -alias wishy -keyalg RSA -keysize 4096 -validity 10000
+1. Open the project folder in Android Studio and let the first Gradle sync finish (it downloads the GeckoView engine once).
+2. Choose **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
+3. Your installable APK is copied to **`dist/`** in the project folder. Every build type is shrunk and signed, so any of them installs directly.
+
+Command line: `./gradlew assembleRelease` (Windows: `gradlew.bat assembleRelease`). Use JDK 17 or newer.
+
+### Install on the TV
+
+```
+adb connect <tv-ip-address>
+adb install -r dist/app-release.apk
 ```
 
-Locally, set `WISHY_KEYSTORE`, `WISHY_KEYSTORE_PASSWORD`, `WISHY_KEY_ALIAS` and `WISHY_KEY_PASSWORD` (environment or `~/.gradle/gradle.properties`). On GitHub, add the repository secrets `WISHY_KEYSTORE_BASE64` (`base64 -w0 wishy.jks`), `WISHY_KEYSTORE_PASSWORD`, `WISHY_KEY_ALIAS` and `WISHY_KEY_PASSWORD`. Without them the debug key is used. Never commit the `.jks` file.
+Or copy the APK to a USB stick, or use the Downloader app, and open it on the TV.
 
-### Build Release APK
+### What the build gives you
 
-```bash
-git clone https://github.com/wishissue/WishyBrowser.git
-cd WishyBrowser
-./gradlew assembleRelease
-```
-
----
-
-## License
-
-See the [`LICENSE`](LICENSE) file in this repository for licensing details.
+- **Three Product Flavors (`arm32`, `arm64`, `universal`):**
+  - **`arm32`**: Targeted for older/cheaper sticks and boxes (e.g., Fire TV Stick Lite). APK size is ~90 MB.
+  - **`arm64`**: For high-end TVs and streaming devices (e.g., Nvidia Shield, newer Google TVs). APK size is ~93 MB.
+  - **`universal`**: Contains both ARM architectures, offering easiest sideloading compatibility (~161 MB).
+- **Experimental Uncompressed Packaging Option:** Passing `-Pwishy.uncompressedLibs=true` stores native libraries page-aligned and uncompressed inside the APK. This allows the Android system to memory-map them directly rather than extracting them at installation, which saves runtime memory but increases the APK file size (~148 MB for arm32, ~185 MB for arm64).
+- **Memory Optimization Tuning:** Built-in engine optimizations restrict the back-forward cache to a single page (`browser.sessionhistory.max_total_viewers = 1`), reduce the memory cache to a low 4 MB limit (`browser.cache.memory.capacity = 4096`), and disable prelaunch background helper content processes (`dom.ipc.processPrelaunch.enabled = false`) to stay resilient on resource-constrained 1-2 GB RAM TVs.
+- To run on an **x86_64 emulator**, add `wishy.includeX86=true` to `gradle.properties` and build again.
+- If you change the GeckoView version, pick one from [maven.mozilla.org](https://maven.mozilla.org/maven2/org/mozilla/geckoview/geckoview/) and check the code still compiles; GeckoView's API changes between major versions.
 
 ---
 
-<div align="center">
+## Compatibility
 
-**Wishy Browser — the web, on your TV.**
+- **Android 8.0 (API 26) and newer.** This is the floor of the current Firefox engine (Mozilla dropped Android 5 to 7 in Firefox 144). Older Fire TV sticks running Fire OS 5 or 6 cannot run a modern, patched engine and are not supported.
+- **Works on Fire TV and generic Android TV boxes**, not just Google-certified devices. `android.software.leanback` is declared `required="false"` so stores don't hide the app from them.
+- **Landscape only** for consistent behavior on every TV form factor, including hybrid boxes that default to portrait.
+- **Shows up on every launcher.** The app registers for both the Android TV (Leanback) launcher and the standard one, so cheap boxes with a normal launcher list it too.
+- **Adaptive icon** plus legacy PNGs for every density.
+- **TV banner** is a true 320×180 asset, the exact size the Leanback launcher expects.
 
-[GitHub repository](https://github.com/wishissue/WishyBrowser) · [Releases](https://github.com/wishissue/WishyBrowser/releases) · [Issues](https://github.com/wishissue/WishyBrowser/issues)
+---
 
-</div>
+## What's stored, and what isn't
+
+Wishy stores **only** the following, in the app's private storage, and only when you choose to save them:
+
+- Bookmarks
+- Home page
+- Desktop-site mode
+- Text size
+
+Browsing history, cookies and form data are **never** written to disk.
+
+**Left out on purpose** (to keep the app small and auditable): tabs, a history list, a downloads manager, extensions, and any kind of account or sync.
+
+---
+
+## Under the hood
+
+| Layer | Choice |
+| --- | --- |
+| **Engine** | [Mozilla GeckoView](https://mozilla.github.io/geckoview/) as a prebuilt Maven artifact (MPL-2.0). No Firefox source is forked, and no Firefox branding, telemetry, experiments or sync code is included |
+| **UI** | Single `Activity`, Jetpack Compose with Material 3 Expressive (`androidx.compose.material3`), Material Icons (Apache-2.0) |
+| **Language** | Kotlin |
+| **Privacy config** | `BrowserApplication.kt` |
+| **Input handling** | `MainActivity.kt`, `BrowserController.kt` |
+| **Bookmarks** | `BookmarkStore.kt` (JSON in SharedPreferences), `Library.kt` (Jetpack Compose page) |
+
+### Developer notes
+
+- **Toolchain:** Gradle 9.7.1, Android Gradle Plugin 9.4.1 (Kotlin built in), Kotlin 2.4.20, compile SDK 37, target SDK 36, GeckoView 155 (Firefox 155).
+- **Key handling** lives in `MainActivity.dispatchKeyEvent` where D-pad, remote and Back events are routed to `BrowserController.handleKey`.
+- **Passkeys are off.** GeckoView's WebAuthn code depends on Google Play Services, which is proprietary. This build excludes it (`app/build.gradle.kts`) and disables WebAuthn in `BrowserApplication.kt`, so sites fall back to passwords. To re-enable passkeys, remove the `exclude` and the `security.webauth.webauthn` pref.
+- **Backups:** `allowBackup` is off, so bookmarks do not survive an uninstall.
+- **Updates:** there is no in-app auto-update. GeckoView does not update independently of your app releases, so rebuild against a newer GeckoView regularly for security fixes.
+- **Signing:** builds are signed with the local debug key so they install directly. Use your own keystore if you publish through a store.
+
+---
+
+## Known issues and limits
+
+Being upfront about what can go wrong:
+
+**Devices**
+- **Android 8.0 (API 26) or newer only.** Older Fire TV sticks (Fire OS 5 and 6) and Android TV boxes on Android 7 or below cannot run the current engine.
+- **Big install.** The APK is about 90–93 MB per architecture (~161 MB for the universal build) and needs roughly 300 MB of free space once installed. Very cheap TV sticks with little storage may fail to install it.
+- **Needs memory.** GeckoView is a full Firefox engine. On a stick with about 1 GB of RAM it can be slow, reload pages, or be closed by the system.
+- **Only tested so far** on an Android TV emulator and an Android phone. Different TV brands (Fire TV, Xiaomi, TCL, Sony, generic boxes) may behave differently with the remote, Back button, fullscreen video or the pointer.
+- **Phones:** it installs and runs, but the layout is built for a TV and is locked to landscape. It is not a phone browser.
+
+**Features that are off or missing on purpose**
+- **No passkeys or security keys.** They depend on Google Play Services (proprietary), which this build leaves out. Password logins work; sites that require a passkey will not.
+- **No notifications, push messages or location.** These are switched off.
+- **Everything is private mode.** Nothing is remembered, so sites will not keep you logged in after you close the app.
+- **No tabs, history list, downloads manager, extensions or sync.**
+- **No automatic updates.** Browsers need security fixes often. The engine only updates when the app is rebuilt against a newer GeckoView, so check for new releases.
+
+**Things that may go wrong**
+- Some sites detect an unusual browser and ask for extra checks or refuse to load. Strict tracking protection and fingerprint resistance can also break a few sites (logins, payments, embedded videos).
+- Streaming sites that need DRM (Netflix, Disney+ and similar) may not play. YouTube and most other video sites are fine.
+- Pointer mode is a workaround for mouse-only pages. It can be fiddly on pages with lots of small buttons.
+- If you install a build signed with a different key (for example a GitHub Actions build over a release APK), Android will say the app conflicts. Uninstall the old one first; saved bookmarks will be lost.
+
+---
+
+## Privacy: what still connects out
+
+Wishy sends no analytics, accounts or browsing history anywhere. Four engine features still make network requests, and you should know about them:
+
+1. **Safe Browsing (Google).** GeckoView checks pages against Google's phishing and malware lists. It downloads the lists and sends short hash prefixes of sites that match, not full addresses. This protects you from bad sites. It can be turned off in `BrowserApplication.kt` with `.safeBrowsing(ContentBlocking.SafeBrowsing.NONE)`, at the cost of no phishing or malware warnings.
+2. **uBlock Origin Filter Lists.** The bundled uBlock Origin extension (v1.75.0) downloads and updates its ad and tracker filter lists from their respective maintainers' servers.
+3. **DNS-over-HTTPS (Google).** Encrypted DNS queries are sent to `dns.google` (8.8.8.8) to prevent local network monitoring of your browsing habits.
+4. **Tracker lists (Mozilla).** The tracking-protection lists are updated from Mozilla's servers.
+
+And of course the sites you visit, and the search engine you use, see your IP address like any other website. Wishy does not hide your IP; use a VPN or router-level privacy for that.
+
+---
+
+## Support the project
+
+Wishy Browse is free, has no ads and no tracking, and is built in spare time. If it is useful to you, a tip helps me keep it going. It is completely optional.
+
+<p align="center">
+  <a href="https://ko-fi.com/wishismachine"><img src="https://img.shields.io/badge/%E2%98%95-Buy%20Wishy%20a%20coffee-FFF1DC?style=for-the-badge&labelColor=FF8A65" alt="Buy Wishy a coffee on Ko-fi"></a>
+  &nbsp;
+  <a href="https://wishissue.github.io/wishy-apps/donate.html"><img src="https://img.shields.io/badge/%F0%9F%AA%99-Tip%20a%20little%20USDT-E3F6EC?style=for-the-badge&labelColor=26A17B" alt="Tip Wishy with USDT"></a>
+</p>
+
+The crypto page has QR codes and a copy button for each network. You can also use the addresses below directly.
+
+<details>
+<summary><b>USDT wallet addresses</b></summary>
+
+| Network | Address |
+| --- | --- |
+| **Tron (TRC20)** | `TUn7M6syjxrgfcUskaxH7UdjnpUngh3fYp` |
+| **Ethereum (ERC20)** | `0x7c11cd045bb237e579e8ce58591313aff6f87781` |
+
+Only send **USDT** on the matching network. Funds sent on a different network can't be recovered. Tron has much lower fees, and the minimum is 1 USDT.
+
+</details>
+
+Not able to donate? Starring the repo and sharing it with a friend helps just as much.
+
+---
+
+## Contact and bug reports
+
+Something not working on your TV? I want to hear about it.
+
+- **Report a bug or ask a question:** open an issue at [github.com/wishissue/WishyBrowser/issues](https://github.com/wishissue/WishyBrowser/issues)
+- **Contact me directly:** [github.com/wishissue](https://github.com/wishissue)
+
+A good bug report includes:
+- your TV or box model and Android version,
+- what you did and what happened instead,
+- a screenshot if possible,
+- the log, if you can get it: `adb logcat -d | grep -i -E "wishy|gecko|fatal"`
+
+Ideas and pull requests are welcome too. This is a spare-time project, so replies may take a while.
+
+---
+
+## Credits and licenses
+
+- Browser engine: [Mozilla GeckoView](https://mozilla.github.io/geckoview/) (MPL-2.0)
+- Icons: [Material Icons](https://fonts.google.com/icons) (Apache-2.0)
+- UX reference: TV Bro was reviewed for the pointer-mode pattern only. **No TV Bro code is used.**
+
+See [`NOTICE.md`](NOTICE.md) for the full accounting.
+
+---
+
+<p align="center">
+  Made for the couch. 🐱
+</p>

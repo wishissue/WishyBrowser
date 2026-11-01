@@ -4,21 +4,27 @@ import android.app.ActivityManager
 import android.app.Application
 import android.os.Build
 import android.util.Log
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import org.wishy.browser.engine.Blocker
 
-/** Tiny on purpose: no engine to boot. Loads the blocklist on a background thread and reads the last exit reason. */
+/**
+ * No engine runtime to start any more: pages are drawn by the device's own Android System WebView.
+ * This class only owns the blocker and reads why the previous run ended.
+ *
+ * No analytics, crash reporter, accounts or background network work exist in this app.
+ */
 class BrowserApplication : Application() {
+
+    val blocker: Blocker by lazy { Blocker(this) }
+
     override fun onCreate() {
         super.onCreate()
-        // The system WebView runs its own renderer process; this app has no helper processes of its own.
         readLastExit()
-        Thread({ Blocklist.load(this) }, "wishy-blocklist").apply { priority = Thread.MIN_PRIORITY }.start()
     }
 
-    /** Android keeps the process-exit history (API 30+); one line of it is shown on the next launch. */
+    /**
+     * Reads Android's own process-exit history (API 30+) and keeps a one-line summary of the newest
+     * real problem (out of memory, native crash, ANR...) for [ExitReport]. No logcat or adb needed.
+     */
     private fun readLastExit() {
         if (Build.VERSION.SDK_INT < 30) return
         runCatching {
@@ -30,6 +36,7 @@ class BrowserApplication : Application() {
             val problems = setOf(
                 android.app.ApplicationExitInfo.REASON_LOW_MEMORY, android.app.ApplicationExitInfo.REASON_CRASH,
                 android.app.ApplicationExitInfo.REASON_CRASH_NATIVE, android.app.ApplicationExitInfo.REASON_ANR,
+                android.app.ApplicationExitInfo.REASON_SIGNALED, android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE,
                 android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE,
             )
             val worst = fresh.firstOrNull { it.reason in problems } ?: return
@@ -38,13 +45,18 @@ class BrowserApplication : Application() {
                 android.app.ApplicationExitInfo.REASON_CRASH -> "App crash"
                 android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "Native crash"
                 android.app.ApplicationExitInfo.REASON_ANR -> "App stopped responding"
-                else -> "Used too many resources"
+                android.app.ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "Failed to start"
+                android.app.ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "Used too many resources"
+                else -> "Stopped by Android"
             }
-            ExitReport.pending = "$what (${worst.rss / 1024} MB)"
-        }.onFailure { Log.w("Wishy", "Could not read exit history", it) }
+            val summary = "$what (${worst.rss / 1024} MB)"
+            Log.w(TAG, "Previous exit: $summary ${worst.description.orEmpty()}")
+            ExitReport.pending = summary
+        }.onFailure { Log.w(TAG, "Could not read exit history", it) }
     }
 
     companion object {
+        private const val TAG = "WishyBrowser"
         fun from(app: Application): BrowserApplication = app as BrowserApplication
     }
 }
@@ -53,12 +65,4 @@ class BrowserApplication : Application() {
 object ExitReport {
     @Volatile var pending: String? = null
     fun take(): String? { val t = pending; pending = null; return t }
-}
-
-/** Live state of the built-in blocker, read by the UI. */
-object Shields {
-    /** True once the blocklist is parsed. */
-    var ready by mutableStateOf(false)
-    var domains by mutableIntStateOf(0)
-    val blockerActive: Boolean get() = ready && domains > 0
 }

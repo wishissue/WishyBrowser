@@ -32,9 +32,9 @@ avoid pulling GPL-3.0 obligations onto this repo.
   GeckoView also brings in a few AndroidX support libraries and SnakeYAML
   (Apache-2.0) as its own dependencies.
 
-## Plus Jakarta Sans and Bagel Fat One typefaces
+## Poppins typeface
 - **License**: SIL Open Font License 1.1.
-- **Use**: the app's UI font (`res/font/plusjakarta_*.ttf`, static Latin subsets) and the app-name font (`res/font/bagelfatone_regular.ttf`); both SIL OFL 1.1, see `OFL-PlusJakartaSans.txt`.
+- **Use**: the app's UI font (`res/font/poppins_*.ttf`).
 
 ## Material Symbols / Material Icons glyphs
 - **License**: Apache License 2.0 (Google's Material Icons/Symbols set).
@@ -95,5 +95,9 @@ content" requirements, this project does **not** depend on:
 - **Approach**: the build setup (Compose BOM, Material 3 1.5 Expressive, optIn flags) and the palette
   generator were adapted from Orion Store (GPL-3.0, RookieEnough/Orion-Store).
 
-## androidx.webkit
-- **License**: Apache License 2.0. **Use**: `addDocumentStartJavaScript` so the privacy layer (`assets/privacy.js`) runs before page scripts.
+## Wishy 4.0 additions
+- **EasyList and EasyPrivacy** (https://easylist.to) – the domain blocklist `app/src/main/assets/blocklist.txt` and generic cosmetic selectors `cosmetic.txt` are derived from these lists by `tools/build_blocklist.py`. Licensed GPLv3+ / CC BY-SA 3.0 (dual). Peter Lowe's list, previously bundled via uBlock Origin, is no longer included (non-commercial terms).
+- **Android System WebView / Chromium** – used from the device; not redistributed.
+- **GeckoView and uBlock Origin** are no longer part of the app; their notices are removed from the credits page.
+- **Cursor pictures** (app/src/main/assets/cursors, built by `tools/build_cursors.py`; licence texts are in that folder):
+  Bibata (Abdulkaiz Khan, GPL-3.0), Vimix and Layan (Vince Liu, GPL-3.0), Capitaine (Keefer Rourke and others, based on KDE Breeze, LGPL-3.0). The code-drawn cursors from 3.x were removed.

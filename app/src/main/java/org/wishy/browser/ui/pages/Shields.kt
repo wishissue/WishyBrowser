@@ -9,47 +9,28 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.wishy.browser.BrowserController
-import org.wishy.browser.Opt
-import org.wishy.browser.Page
-import org.wishy.browser.Shields
+import org.wishy.browser.SiteChoice
 import org.wishy.browser.ui.*
 
 @Composable
 fun ShieldsPage(c: BrowserController) {
-    val active = Shields.blockerActive
-    val starting = !Shields.ready
     val cs = MaterialTheme.colorScheme
-
-    PageScaffold("Shields", { c.popPage() }) {
+    PageScaffold("Shields and privacy", { c.popPage() }) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                Surface(
-                    color = if (active) cs.primaryContainer else if (starting) cs.surfaceContainerHigh else cs.errorContainer,
-                    shape = RoundedCornerShape(32.dp), modifier = Modifier.fillMaxWidth().reveal(0)
-                ) {
+                Surface(color = cs.primaryContainer, shape = RoundedCornerShape(32.dp), modifier = Modifier.fillMaxWidth().reveal(0)) {
                     Row(Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            Modifier.size(84.dp).clip(MaterialShapes.Cookie9Sided.toShape())
-                                .background(if (active) cs.primary else if (starting) cs.secondary else cs.error),
+                            Modifier.size(84.dp).clip(MaterialShapes.Cookie9Sided.toShape()).background(cs.primary),
                             contentAlignment = Alignment.Center
-                        ) {
-                            if (starting) LoadingIndicator(Modifier.size(44.dp))
-                            else Icon(
-                                if (active) Sym.ShieldFilled else Sym.Warning, null, Modifier.size(42.dp),
-                                tint = if (active) cs.onPrimary else cs.onError
-                            )
-                        }
+                        ) { Icon(Sym.ShieldFilled, null, Modifier.size(42.dp), tint = cs.onPrimary) }
                         Column(Modifier.padding(start = 22.dp)) {
+                            Text("Blocking is on", style = MaterialTheme.typography.headlineSmallEmphasized)
                             Text(
-                                if (active) "Blocking is on" else if (starting) "Starting the blocker" else "The blocker is not running",
-                                style = MaterialTheme.typography.headlineSmallEmphasized
-                            )
-                            Text(
-                                if (active) "Ads, pop-ups and trackers are filtered in every tab. No blocker can promise every ad, so check a page with the test below."
-                                else if (starting) "This takes a few seconds the first time."
-                                else "Use Reset blocker below, then reopen the app.",
+                                "Wishy uses your TV's Android System WebView. Its blocker is simpler than uBlock Origin and it cannot hide your browser fingerprint. This page lists what is on, what is partial, and what is not available.",
                                 style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 4.dp)
                             )
                         }
@@ -68,25 +49,53 @@ fun ShieldsPage(c: BrowserController) {
                     trailing = { Switch(c.notifyBlocked, null) }
                 ) { c.toggleNotifyBlocked() }
             }
-            if (c.canToggleSiteShields) item {
-                ActionRow(
-                    Sym.ShieldFilled, "Shields on this site", "Turn off if a page is broken by blocking (reloads the page)",
-                    trailing = { Switch(c.siteShieldsOn, null) }
-                ) { c.toggleSiteShields() }
-            }
-            item { SectionLabel("Ad and tracker blocking") }
-            item { InfoRow("Blocked hosts (ad servers, EasyPrivacy)", if (active) "${Shields.domains}" else "Loading", active) }
-            item { InfoRow("YouTube ads", if (c.isOn(Opt.YOUTUBE_ADS)) "Removed" else "Off", c.isOn(Opt.YOUTUBE_ADS)) }
-            item { InfoRow("Ad spaces", if (c.isOn(Opt.AD_COSMETIC)) "Hidden" else "Off", c.isOn(Opt.AD_COSMETIC)) }
-            item { InfoRow("Pop-up windows", "Only when you click", true) }
+            item { ActionRow(Sym.CleaningServices, "Clear cookies and site data now", "Cookies, site storage and cache") { c.clearBrowsingData() } }
             item { ActionRow(Sym.AdsClick, "Run an ad-block test", "Opens a public page that scores your blocker") { c.open("https://d3ward.github.io/toolz/adblock.html") } }
-            item { SectionLabel("Protections (${c.protectionsOn} of ${c.protectionsTotal} on)") }
-            for (o in Opt.entries.filter { it != Opt.LITE }) {
-                item(key = o.key) { InfoRow(o.title, if (c.isOn(o)) "On" else "Off", c.isOn(o)) }
+
+            val site = c.siteHost
+            if (site != null) {
+                item { SectionLabel("This site: $site") }
+                item {
+                    ActionRow(
+                        Sym.Code, "JavaScript", "Turning it off breaks most modern sites",
+                        trailing = { Switch(c.siteJsAllowed(), null) }
+                    ) { c.toggleSiteJs() }
+                }
+                item {
+                    ActionRow(
+                        Sym.Mic, "Camera and microphone", "Tap to change",
+                        trailing = { Text(when (c.siteMedia()) { SiteChoice.ASK -> "Ask"; SiteChoice.ALLOW -> "Allow"; SiteChoice.BLOCK -> "Block" }, style = MaterialTheme.typography.titleMedium) }
+                    ) { c.cycleSiteMedia() }
+                }
+                item { ActionRow(Sym.Refresh, "Reset all site settings", "Back to defaults for every site") { c.resetSiteSettings() } }
             }
-            item { InfoRow("Google Safe Browsing and metrics", "Off", true) }
-            item { InfoRow("Encrypted DNS", "Use Android's Private DNS", null) }
-            item { ActionRow(Sym.Tune, "Change privacy options", "Search engine and every switch") { c.openPage(Page.PRIVACY) } }
+            item { SectionLabel("On (enforced by the app)") }
+            item { InfoRow("Ad and tracker domain blocking", "${c.blockerDomains} domains", true) }
+            item { InfoRow("HTTPS upgrade, warns if a site has none", "On", true) }
+            item { InfoRow("Tracking parameters removed (utm_*, fbclid, gclid...)", "On", true) }
+            item { InfoRow("Certificate errors", "Always blocked", true) }
+            item { InfoRow("Third-party cookies", "Off", true) }
+            item { InfoRow("Pop-ups", "Need a click", true) }
+            item { InfoRow("Links to other apps", "Blocked", true) }
+            item { InfoRow("Camera and microphone", "Ask every time", true) }
+            item { InfoRow("Location, file:// and content:// access", "Off", true) }
+            item { InfoRow("Cookies and site data", "Wiped at start and exit", true) }
+            item { InfoRow("History, accounts, telemetry", "None", true) }
+
+            item { SectionLabel("Partial") }
+            item { InfoRow("Global Privacy Control", "Page loads only", null) }
+            item { InfoRow("Ad hiding (cosmetic filters)", "Generic only", null) }
+            item { InfoRow("Ad blocking coverage", "Domains, not URLs", null) }
+            item { InfoRow("YouTube ad skipper", "Best effort", null) }
+            item { InfoRow("Private browsing", "Wiped, not RAM-only", null) }
+            item { InfoRow("Google Safe Browsing (if the TV has Play services)", "Contacts Google", null) }
+
+            item { SectionLabel("Not available with Android WebView") }
+            item { InfoRow("Fingerprint resistance", "Not available", false) }
+            item { InfoRow("Total Cookie Protection", "Not available", false) }
+            item { InfoRow("Encrypted DNS (uses the TV's DNS)", "Not available", false) }
+            item { InfoRow("uBlock features: scriptlets, dynamic rules, custom lists", "Not available", false) }
+            item { InfoRow("Web notifications and push", "Not supported by WebView", false) }
         }
     }
 }

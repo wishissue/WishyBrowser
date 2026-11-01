@@ -80,11 +80,25 @@ fun PromptHost(c: BrowserController) {
             confirmButton = { TextButton({ p.done(true) }) { Text("Allow") } },
             dismissButton = { TextButton({ p.done(false) }, Modifier.focusRequester(focus)) { Text("Deny") } },
         )
+        // Safe default: Cancel has the focus, so a stray OK press never opens or installs anything.
+        is PromptRequest.OpenFile -> AlertDialog(
+            onDismissRequest = { p.done(false) },
+            title = { Text(if (p.isApk) "Install this app?" else "Open this file?") },
+            text = {
+                Text(
+                    p.name + "\n\n" + (p.warning?.let { it + "\n\n" } ?: "") +
+                        if (p.isApk) "Android will ask you to confirm the install. Only install apps from sources you trust."
+                        else "Only open files from sources you trust."
+                )
+            },
+            confirmButton = { TextButton({ p.done(true) }) { Text(if (p.isApk) "Continue" else "Open") } },
+            dismissButton = { TextButton({ p.done(false) }, Modifier.focusRequester(focus)) { Text("Cancel") } },
+        )
     }
     if (c.showOnboarding && c.prompt == null) {
         AlertDialog(
             onDismissRequest = { c.dismissOnboarding() },
-            title = { Text("How Wishy Browser works") },
+            title = { Text("How Wishy Browse works") },
             text = {
                 Text(
                     "Type in the search bar to search or open a site.\n\n" +

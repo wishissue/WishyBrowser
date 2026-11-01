@@ -26,13 +26,19 @@ fun DeveloperPage(c: BrowserController) {
     PageScaffold("Developer", { c.popPage() }) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             item {
-                Column(Modifier.padding(bottom = 12.dp).reveal(0)) {
-                    Text("wishissue", style = MaterialTheme.typography.headlineLargeEmphasized)
-                    Text("Maker of Wishy Browser", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        "A fast, private browser built for the big screen.",
-                        style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp)
+                Row(Modifier.padding(bottom = 12.dp).reveal(0), verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painterResource(R.drawable.ic_cat_logo), null,
+                        Modifier.size(104.dp).clip(RoundedCornerShape(30.dp)).background(MaterialTheme.colorScheme.primaryContainer)
                     )
+                    Column(Modifier.padding(start = 22.dp)) {
+                        Text("wishissue", style = MaterialTheme.typography.headlineLargeEmphasized)
+                        Text("Maker of Wishy Browse", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "A fast, private browser built for the big screen.",
+                            style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
                 }
             }
             item { ActionRow(Sym.Code, "GitHub profile", "github.com/wishissue") { c.open(GITHUB) } }
@@ -45,17 +51,17 @@ fun DeveloperPage(c: BrowserController) {
 private class Credit(val name: String, val role: String, val license: String, val url: String)
 
 private val CREDITS = listOf(
-    Credit("Android System WebView", "The browser engine (Chromium), already on your TV", "BSD-3-Clause", "https://www.chromium.org/"),
-    Credit("Wishy Browser (original)", "The Gecko-based version this one is rebuilt from", "GPL-3.0", "https://github.com/wishissue/WishyBrowser"),
+    Credit("Android System WebView (Chromium)", "The browser engine, provided by your device", "BSD-3-Clause", "https://www.chromium.org/"),
     Credit("Orion Store", "Design inspiration and theme seed colours", "GPL-3.0", "https://github.com/RookieEnough/Orion-Store"),
     Credit("Jetpack Compose and Material 3", "The interface toolkit", "Apache-2.0", "https://developer.android.com/compose"),
     Credit("Material Color Utilities", "Generates the 45 colour themes", "Apache-2.0", "https://github.com/material-foundation/material-color-utilities"),
     Credit("Material Symbols", "Icons", "Apache-2.0", "https://fonts.google.com/icons"),
-    Credit("OkHttp", "The download manager: resume, redirects and secure connections", "Apache-2.0", "https://square.github.io/okhttp/"),
-    Credit("Open-Source Cursor Collection", "Bibata, Capitaine, Phinger, Vimix and XCursor Pro packs", "LGPL / CC / GPL", "https://github.com/ful1e5/Bibata_Cursor"),
-    Credit("EasyPrivacy and Peter Lowe's ad server list", "Domains behind the built-in blocker", "GPL-3.0 / CC BY-SA", "https://easylist.to/"),
-    Credit("Plus Jakarta Sans", "Interface typeface, by Tokotype", "OFL-1.1", "https://fonts.google.com/specimen/Plus+Jakarta+Sans"),
-    Credit("Bagel Fat One", "App-name typeface, by JAMO", "OFL-1.1", "https://fonts.google.com/specimen/Bagel+Fat+One"),
+    Credit("Bibata Cursor", "Cursor pictures, by Abdulkaiz Khan", "GPL-3.0", "https://github.com/ful1e5/Bibata_Cursor"),
+    Credit("Vimix cursors", "Cursor pictures, by Vince Liu", "GPL-3.0", "https://github.com/vinceliuice/Vimix-cursors"),
+    Credit("Layan cursors", "Cursor pictures, by Vince Liu", "GPL-3.0", "https://github.com/vinceliuice/Layan-cursors"),
+    Credit("Capitaine cursors", "Cursor pictures, by Keefer Rourke and others (based on KDE Breeze)", "LGPL-3.0", "https://github.com/keeferrourke/capitaine-cursors"),
+    Credit("EasyList and EasyPrivacy", "Source of the built-in blocklist", "GPL-3.0+ / CC BY-SA 3.0", "https://easylist.to/"),
+    Credit("Poppins", "Typeface, by Indian Type Foundry", "OFL-1.1", "https://fonts.google.com/specimen/Poppins"),
     Credit("TV Bro", "Inspired the D-pad pointer idea (no code used)", "GPL-3.0", "https://github.com/truefedex/tv-bro"),
 )
 
@@ -104,7 +110,7 @@ fun DonatePage(c: BrowserController) {
                 Box(
                     Modifier.reveal(1).size(264.dp).clip(RoundedCornerShape(32.dp)).background(androidx.compose.ui.graphics.Color.White).padding(14.dp)
                 ) {
-                    Image(painterResource(R.drawable.qr_donate), "QR code for the Wishy Browser donation page", Modifier.fillMaxSize())
+                    Image(painterResource(R.drawable.qr_donate), "QR code for the Wishy Browse donation page", Modifier.fillMaxSize())
                 }
             }
             item { Text(DONATE_URL.removePrefix("https://"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary) }

@@ -11,13 +11,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <!-- Downloads: a foreground service keeps a transfer alive when you leave the app, and
-         a notification shows its progress. Storage permission is only for Android 9 and
-         older (newer versions save through MediaStore without any permission). -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- Only used to hand a downloaded .apk to Android's own installer. Android still asks the user, and the user must allow Wishy as an install source. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- required="false": declaring this as required=true would make the
          Play Store filter the app OUT of devices that don't explicitly
@@ -50,19 +45,14 @@
     <application
         android:name=".BrowserApplication"
         android:allowBackup="false"
+        android:usesCleartextTraffic="true"
         android:banner="@drawable/tv_banner"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.WishyBrowser"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
-        android:usesCleartextTraffic="true"
         android:hardwareAccelerated="true">
-
-        <!-- Safe Browsing sends hashes of visited sites to Google. Off. -->
-        <meta-data android:name="android.webkit.WebView.EnableSafeBrowsing" android:value="false" />
-        <!-- No metrics upload from the system WebView. -->
-        <meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />
 
         <activity
             android:name=".MainActivity"
@@ -87,7 +77,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Lets the OS offer Wishy Browser as a handler for plain web
+            <!-- Lets the OS offer Wishy Browse as a handler for plain web
                  links tapped in other apps, and (on devices that support it)
                  as a choice for "default browser". -->
             <intent-filter>
@@ -99,12 +89,7 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".DownloadService"
-            android:exported="false"
-            android:foregroundServiceType="dataSync" />
-
-        <!-- Lets other apps open a finished download that lives in this app's own folder. -->
+        <!-- Shares downloaded files (Android 8-9 app-folder downloads) with the installer and viewer apps. -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

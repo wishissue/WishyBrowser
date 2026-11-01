@@ -54,9 +54,8 @@ fun SearchPill(
     modifier: Modifier = Modifier,
     height: Dp = 56.dp,
     loading: Boolean = false,
-    startEditing: Boolean = false,
 ) {
-    var editing by remember { mutableStateOf(startEditing) }
+    var editing by remember { mutableStateOf(false) }
     val source = remember { MutableInteractionSource() }
     val focused by source.collectIsFocusedAsState()
     val container by animateColorAsState(

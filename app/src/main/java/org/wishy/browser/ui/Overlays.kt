@@ -15,7 +15,6 @@ import org.wishy.browser.ui.pages.CursorsPage
 import org.wishy.browser.ui.pages.DeveloperPage
 import org.wishy.browser.ui.pages.DonatePage
 import org.wishy.browser.ui.pages.DownloadsPage
-import org.wishy.browser.ui.pages.PrivacyPage
 import org.wishy.browser.ui.pages.SettingsPage
 import org.wishy.browser.ui.pages.ShieldsPage
 import org.wishy.browser.ui.pages.ThemesPage
@@ -34,13 +33,12 @@ fun Overlays(c: BrowserController) {
         when (page) {
             null -> Unit
             Page.MENU -> MenuSheet(c)
-            Page.DOWNLOADS -> DownloadsPage(c)
             Page.BOOKMARKS -> BookmarksPage(c)
             Page.THEMES -> ThemesPage(c)
             Page.CURSORS -> CursorsPage(c)
             Page.SETTINGS -> SettingsPage(c)
             Page.SHIELDS -> ShieldsPage(c)
-            Page.PRIVACY -> PrivacyPage(c)
+            Page.DOWNLOADS -> DownloadsPage(c)
             Page.NOTIFICATIONS -> NotificationsPage(c)
             Page.DEVELOPER -> DeveloperPage(c)
             Page.CREDITS -> CreditsPage(c)

@@ -12,37 +12,32 @@ android {
     compileSdkMinor = 1
 
     defaultConfig {
-        applicationId = "wishissue.wishybrowser"
-        minSdk = 24          // system WebView needs no engine, so older TV boxes work too
+        applicationId = "org.wishy.browser"
+        minSdk = 26
         targetSdk = 36
-        versionCode = 13
-        versionName = "4.3.1"
-        // English only: fewer strings and resources in the APK.
-        androidResources.localeFilters += "en"
+        versionCode = 9
+        versionName = "4.0.0"
+        // The browser engine is the TV's own WebView, so the app has no native libraries and a
+        // single APK runs on every CPU type (no ABI flavours needed any more).
     }
 
-    // One universal APK: the app has no native code, so per-CPU splits would only produce identical files.
-
-    // Release signing. Set these (environment or gradle.properties) to sign with your own key:
-    //   WISHY_KEYSTORE (path to the .jks), WISHY_KEYSTORE_PASSWORD, WISHY_KEY_ALIAS, WISHY_KEY_PASSWORD
-    // Without them the build falls back to the debug key, so local builds still work.
-    fun setting(name: String): String? = System.getenv(name) ?: providers.gradleProperty(name).orNull
     signingConfigs {
-        val keystore = setting("WISHY_KEYSTORE")
-        if (keystore != null && File(keystore).exists()) {
-            create("release") {
-                storeFile = File(keystore)
-                storePassword = setting("WISHY_KEYSTORE_PASSWORD")
-                keyAlias = setting("WISHY_KEY_ALIAS")
-                keyPassword = setting("WISHY_KEY_PASSWORD")
+        create("release") {
+            val storePath = providers.gradleProperty("WISHY_KEYSTORE").orNull
+                ?: "/home/denji/Documents/WishyBrowser_Keystore/wishy.jks"
+            val storeFileObj = File(storePath)
+            if (storeFileObj.exists()) {
+                storeFile = storeFileObj
+                storePassword = providers.gradleProperty("WISHY_KEYSTORE_PASSWORD").orNull ?: "wishisashi13"
+                keyAlias = providers.gradleProperty("WISHY_KEY_ALIAS").orNull ?: "wishy"
+                keyPassword = providers.gradleProperty("WISHY_KEY_PASSWORD").orNull ?: "wishisashi13"
             }
         }
     }
 
-    // Minified and shrunk release build for maximum stability and minimal size
     buildTypes {
         release {
-            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -64,13 +59,15 @@ android {
     packaging {
         resources {
             excludes += listOf(
-                "/META-INF/{AL2.0,LGPL2.1}", "/META-INF/*.version", "/kotlin/**",
-                "DebugProbesKt.bin", "kotlin-tooling-metadata.json"
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "/META-INF/*.version",
+                "/kotlin/**",
+                "DebugProbesKt.bin",
+                "kotlin-tooling-metadata.json",
             )
         }
     }
 
-    // Lint warnings must never stop a build.
     lint {
         abortOnError = false
         checkReleaseBuilds = false
@@ -82,15 +79,18 @@ android {
     }
 }
 
+// Keeps proprietary Google Play Services out of the APK should any library ever pull it in.
+configurations.configureEach {
+    exclude(group = "com.google.android.gms")
+}
+
 dependencies {
+    // Jetpack Compose + Material 3 Expressive: the exact versions Orion Store uses
+    // with this same Android Gradle Plugin and Kotlin version.
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
     implementation("androidx.compose.material3:material3:1.5.0-beta01")
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
-    // Document-start scripts for the privacy layer (Apache-2.0).
-    implementation("androidx.webkit:webkit:1.14.0")
-    // Download manager: resume, redirects and TLS on old TV boxes (Apache-2.0).
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }
 
 kotlin {
@@ -105,19 +105,16 @@ kotlin {
     }
 }
 
-// Copy finished APKs to <project>/output/ so they are easy to find and ignored by git.
+// After building an APK, put a copy in <project>/dist/ so it is easy to find, and print its size.
 val apkDir = layout.buildDirectory.dir("outputs/apk")
-val outputDir = rootProject.layout.projectDirectory.dir("output")
 val distDir = rootProject.layout.projectDirectory.dir("dist")
 tasks.matching { it.name == "assembleDebug" || it.name == "assembleRelease" }.configureEach {
     doLast {
-        val out = outputDir.asFile
+        val out = distDir.asFile
         out.mkdirs()
-        distDir.asFile.mkdirs()
-        apkDir.get().asFile.walkTopDown().filter { it.isFile && it.extension == "apk" }
-            .forEach {
-                it.copyTo(File(out, it.name), overwrite = true)
-                it.copyTo(File(distDir.asFile, it.name), overwrite = true)
-            }
+        apkDir.get().asFile.walkTopDown().filter { it.isFile && it.extension == "apk" }.forEach {
+            it.copyTo(File(out, it.name), overwrite = true)
+            println("APK: ${it.name} = ${"%.2f".format(it.length() / 1048576.0)} MB")
+        }
     }
 }

@@ -15,7 +15,7 @@ class Prefs(context: Context) {
         set(value) = sp.edit().putString("home_url", value).apply()
 
     var desktopMode: Boolean
-        get() = sp.getBoolean("desktop_mode", true)
+        get() = sp.getBoolean("desktop_mode", false)
         set(value) = sp.edit().putBoolean("desktop_mode", value).apply()
 
     /** 1.0 = normal. Larger values make page text bigger for couch-distance reading. */
@@ -38,13 +38,13 @@ class Prefs(context: Context) {
         set(value) = sp.edit().putString("theme_mode", value).apply()
 
     var cursorId: String
-        get() = sp.getString("cursor_id", "") ?: ""
+        get() = sp.getString("cursor_id", "bibata_arrow_classic") ?: "bibata_arrow_classic"
         set(value) = sp.edit().putString("cursor_id", value).apply()
 
     /** Turns every animation into an instant change (for very weak hardware). */
     var reduceMotion: Boolean
-        // On by default: fewer animations, faster page loads on weak TVs.
-        get() = sp.getBoolean("reduce_motion", true)
+        // On by default for weak TVs (about 2 GB RAM or less): fewer animations while a heavy page loads.
+        get() = sp.getBoolean("reduce_motion", isWeakDevice(appCtx))
         set(value) = sp.edit().putBoolean("reduce_motion", value).apply()
 
     /** Timestamp of the newest process exit already reported by ExitReport. */
@@ -77,57 +77,20 @@ class Prefs(context: Context) {
         get() = sp.getString("custom_cursors", "[]") ?: "[]"
         set(value) = sp.edit().putString("custom_cursors", value).apply()
 
-    /** Id of the search engine typed words go to (see SearchEngine). DuckDuckGo until the user picks another. */
-    var searchEngine: String
-        get() = sp.getString("search_engine", SearchEngine.DUCKDUCKGO.id) ?: SearchEngine.DUCKDUCKGO.id
-        set(value) = sp.edit().putString("search_engine", value).apply()
+    // ---- per-site settings (host names only; nothing else about a visit is stored) ----
+    private fun hostSet(key: String): Set<String> = HashSet(sp.getStringSet(key, emptySet()) ?: emptySet())
+    private fun putHostSet(key: String, v: Set<String>) { sp.edit().putStringSet(key, HashSet(v)).apply() }
+    var jsOffHosts: Set<String>
+        get() = hostSet("site_js_off")
+        set(v) = putHostSet("site_js_off", v)
+    var mediaAllowHosts: Set<String>
+        get() = hostSet("site_media_allow")
+        set(v) = putHostSet("site_media_allow", v)
+    var mediaDenyHosts: Set<String>
+        get() = hostSet("site_media_deny")
+        set(v) = putHostSet("site_media_deny", v)
+    fun resetSites() { sp.edit().remove("site_js_off").remove("site_media_allow").remove("site_media_deny").apply() }
 
-    /** First time the app was opened; the donation reminders count from here. */
-    var firstRunAt: Long
-        get() = sp.getLong("first_run_at", 0L)
-        set(value) = sp.edit().putLong("first_run_at", value).apply()
-
-    /** When the coffee reminder was last shown (0 = never). */
-    var lastDonateAsk: Long
-        get() = sp.getLong("last_donate_ask", 0L)
-        set(value) = sp.edit().putLong("last_donate_ask", value).apply()
-
-    /** Ask GitHub once a day whether a newer version exists. Only informs; nothing is downloaded. */
-    var updateCheck: Boolean
-        get() = sp.getBoolean("update_check", true)
-        set(value) = sp.edit().putBoolean("update_check", value).apply()
-
-    var lastUpdateCheck: Long
-        get() = sp.getLong("last_update_check", 0L)
-        set(value) = sp.edit().putLong("last_update_check", value).apply()
-
-    /** The newest version the user was already told about, so each version is announced once. */
-    var lastUpdateNotified: String
-        get() = sp.getString("last_update_notified", "") ?: ""
-        set(value) = sp.edit().putString("last_update_notified", value).apply()
-
-    /** Where the toolbar sits: "top", "bottom", "left" or "right" (see BarSide). */
-    var barSide: String
-        get() = sp.getString("bar_side", "top") ?: "top"
-        set(value) = sp.edit().putString("bar_side", value).apply()
-
-    /** Full-screen mode: no toolbar and no system bars until you ask for them. */
-    var hideBar: Boolean
-        get() = sp.getBoolean("hide_bar", false)
-        set(value) = sp.edit().putBoolean("hide_bar", value).apply()
-
-    /** The notification permission is asked for once, when the first download starts. */
-    var notifAsked: Boolean
-        get() = sp.getBoolean("notif_asked", false)
-        set(value) = sp.edit().putBoolean("notif_asked", value).apply()
-
-    /** Sites where the ad layer is switched off by the user (for pages that break). Comma-separated hosts. */
-    var allowSites: Set<String>
-        get() = (sp.getString("allow_sites", "") ?: "").split(',').filter { it.isNotBlank() }.toSet()
-        set(value) = sp.edit().putString("allow_sites", value.joinToString(",")).apply()
-
-    fun opt(o: Opt): Boolean = sp.getBoolean("opt_" + o.key, o.default)
-    fun setOpt(o: Opt, value: Boolean) = sp.edit().putBoolean("opt_" + o.key, value).apply()
 
     companion object {
         /** About 2 GB of RAM or less. */

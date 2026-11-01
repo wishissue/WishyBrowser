@@ -61,22 +61,25 @@ class MainActivity : ComponentActivity(), ActivityBridge {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        controller = BrowserController(this, this)
+        val app = BrowserApplication.from(application)
+        controller = BrowserController(this, app.blocker, this)
         ExitReport.take()?.let { controller.notify(NoteKind.WARNING, "Last session ended unexpectedly", it, Sym.Refresh, 12_000L) }
         // Android tells the app when memory is short; the controller drops its page previews.
         addOnTrimMemoryListener { level -> controller.onTrimMemory(level) }
 
         setContent {
             val view = LocalView.current
-            LaunchedEffect(controller.isFullScreen, controller.hideBar) {
+            LaunchedEffect(controller.isFullScreen) {
                 val bars = WindowCompat.getInsetsController(window, view)
-                if (controller.isFullScreen || controller.hideBar) {
+                if (controller.isFullScreen) {
                     bars.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                     bars.hide(WindowInsetsCompat.Type.systemBars())
                 } else bars.show(WindowInsetsCompat.Type.systemBars())
             }
-            // Nothing to wait for: no engine to boot and no extensions to install, so the first page starts at once.
-            LaunchedEffect(Unit) { controller.loadUri(viewIntentUrl(intent) ?: controller.homeTarget()) }
+            LaunchedEffect(Unit) {
+                // Load the initial target immediately so navigation starts instantly.
+                controller.loadInitial(viewIntentUrl(intent))
+            }
             WishyApp(controller)
         }
     }
@@ -96,11 +99,6 @@ class MainActivity : ComponentActivity(), ActivityBridge {
     override fun onPause() {
         if (::controller.isInitialized) controller.onPause()
         super.onPause()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (::controller.isInitialized) controller.onResume()
     }
 
     override fun onDestroy() {

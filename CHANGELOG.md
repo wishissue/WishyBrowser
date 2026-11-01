@@ -1,54 +1,71 @@
-# 4.0.0
-- Engine switched from GeckoView to the system WebView. APK ~3-5 MB (was ~55-70 MB), installed ~7-11 MB (was ~140-190 MB).
-- Removed uBlock Origin; added built-in domain blocking, ad-frame hiding and the YouTube ad skipper.
-- Fixed: first page no longer waits for extensions to install; WebView is hosted once and rebuilt only if the renderer dies.
-- minSdk 24 (was 26). One APK for all CPUs (flavors removed).
+# Changelog
 
-# 4.0.1 - flicker and pointer fixes
-- Pointer is now a native View on top of the page (GPU-moved bitmap). No Compose layer, no endless animation, no per-frame recomposition.
-- Page and pointer share one container, so the pointer is drawn by the same pass as the page.
-- Toolbar no longer changes height while a page loads (the loading bar has a fixed slot), so the WebView is not resized and flashed at every load.
-- Page previews use PixelCopy (GPU, async) instead of drawing the WebView on the UI thread; they run once, 3.5 s after load, only when idle.
-- Pointer moves faster from the first press, scrolls every frame at the screen edge, and no longer polls the page while moving; link snapping happens once after you stop, and only within a small radius.
-- Injected script runs once per page (it used to start duplicate timers and observers three times).
-- Progress updates are de-duplicated; the reader check runs after the page settles.
+## 4.0.0 (unreleased, not yet built)
+- **Engine replaced**: GeckoView -> Android System WebView, behind a `BrowserEngine` interface (`engine/`). No native libraries are bundled.
+- **Blocker replaced**: bundled uBlock Origin -> native domain blocker + generic cosmetic CSS.
+- **New Downloads manager**: pause/resume/cancel/retry/remove, scoped storage (MediaStore), safe names, APK confirmation + Android installer.
+- **Shields page** now lists what is on, partial and unavailable.
+- Removed: Gecko-only features (fingerprint resistance, Total Cookie Protection, DoH, uBlock). See PRIVACY_REPORT.md.
+- **Cursors**: code-drawn animated cursors removed; 28 open-source pictures in 4 packs (13 new: Vimix, Layan, Capitaine). Add-your-own and URL import kept.
+- **Per-site settings**: JavaScript and camera/microphone per site.
+- Back on a page dialog now answers the page instead of leaving its JavaScript waiting.
 
-# 4.1.0 - search, privacy and navigation
-- Removed the 45 code-drawn animated cursors. Pointers are now pictures only: the open-source pack in assets/cursors and the ones you add. A plain still arrow is used only when no picture can be loaded.
-- DuckDuckGo is the default search engine. Pick another (Startpage, Brave, Qwant, Mojeek, Ecosia, Google, Bing) on the Privacy page.
-- New Privacy page: 14 switches, all on by default (ads and trackers, cookie pop-ups, pop-ups, autoplay, third-party cookies, tracking links, referrer, GPC/DNT, fingerprint protection, common identity, HTTPS upgrade, location, saved forms, wipe at exit) plus Lite mode (off).
-- New: privacy.js (canvas/battery/CPU fingerprint noise, noreferrer on outbound links, cookie-banner hiding), injected at document start through androidx.webkit when the WebView supports it.
-- New: Clear browsing data now (cookies, storage, cache, history, previews), Find in page (Ctrl+F), Copy link (Ctrl+Shift+C), Alt+Left/Right back and forward, Home/End, F6 address bar.
-- Desktop site and Reduce motion are on by default for new installs.
-- New: "new version" card. Once a day Wishy asks the public GitHub releases of wishissue/WishyBrowser for the latest tag and, if it is newer, shows one card with OK. Nothing is downloaded. Off switch: Settings > Updates. Publish releases with tags like v4.2.0.
-- New: "buy me a coffee" card, 1 month after first use and then every 3 months, with Buy me a coffee (donation page), Show QR code and Maybe later.
 
-# 4.2.0 - layouts and downloads
-- Toolbar position: top, bottom, left or right (Settings > Layout). Left and right use a column of icon buttons; the address opens as a sheet.
-- Full-screen mode: toolbar and system bars hidden. Bring the toolbar back by dragging in from the edge (touch), pushing the pointer against that edge, pressing SEARCH, or holding MENU. It floats over the page, so the page is never resized, and hides itself again.
-- Downloads: new download manager (OkHttp). Pause, resume (also after a dropped connection), cancel, retry, progress notification, saved to the Downloads folder. Needs your OK first (new privacy switch "Ask before downloading").
-- Download privacy: cookies are read at request time and never stored; each redirect only gets its own cookies; https-to-http redirects are refused; referrer and Global Privacy Control follow the existing switches; the list is wiped with "Wipe data at exit" and "Clear data".
-- Fixed: the pointer can now reach the bottom edge of a page that cannot scroll further.
-- Not yet: blob: downloads (files a page builds in memory), installing APKs from the browser.
-- UI aligned with the WishIssue design guidelines: Wishy Blue now uses the shared tokens (primary #1560D4 / #A8C8FF, background #E6F1FF / #080B12, cards one step off the background); Plus Jakarta Sans for the interface and Bagel Fat One for the app name (static Latin subsets, smaller than the old Poppins files).
-- Fixed: the home-screen clock and any text outside a card was black on dark themes; the default text colour now follows the theme.
-- Removed the gradient and the drifting shapes from the home screen, the gradient banner on update/donate cards, and the gradient on page-preview placeholders.
-- Home clock redesigned: larger time, system 12/24-hour setting, small AM/PM, date and greeting, updates on the minute.
-- Build: one universal APK (the app has no native code, so per-CPU splits were pointless); release signing now uses your own key when WISHY_KEYSTORE settings or the GitHub secrets exist (README > Release signing). Note: the first APK signed with a new key cannot update a copy signed with the old debug key; uninstall once.
-- Size: removed two unused 1.3 MB logo images and shrank the launcher logo from 3464 px (1.3 MB) to 432 px WebP.
+All notable changes to Wishy Browse will be documented in this file.
 
-# 4.3.0 - ad blocking and privacy
-- YouTube: ad data (adPlacements, playerAds, adSlots) is removed before the player reads it, in the page's first data, in fetch() answers and in JSON.parse, at document start in every frame. Feed, search, banner and companion ads are hidden (desktop and m.youtube.com). Fallback: Skip is clicked and an ad that still starts is muted and run to its end. YouTube's "ad blockers are not allowed" pop-up is removed and the video resumes. YouTube's ad and ad-measurement requests are blocked (/pagead/, /api/stats/ads, /ptracking, /get_midroll_, ad_break).
-- Other sites: ad containers are hidden (new switch "Hide ad spaces"); bait class names that make sites show "turn off your ad blocker" walls are left alone on purpose; adsbygoogle and googletag are replaced by empty stand-ins so blocked ads do not break page scripts.
-- Network: ad paths on google.com, Facebook (pixel), X and anywhere /pagead/ads and /gampad/ads, on top of the host list.
-- Shields on this site: a per-site switch for pages broken by blocking.
-- New privacy switches: Block YouTube ads, Hide ad spaces, Block WebRTC leaks (off by default). Fingerprint protection now also covers the graphics card name and audio. Link pings (<a ping>) are removed when "Clean tracking links" is on.
-- The old YouTube skipper and ad CSS in wishy.js moved into adblock.js.
+## [3.0.0] (work in progress)
+### Rebuilt
+- The entire interface is now **Jetpack Compose + Material 3 Expressive**; every old XML screen, dialog and view was deleted. New home screen (clock, search pill, shortcut tiles), floating toolbar with a wavy load indicator, side menu, full-screen pages, spring animations everywhere and a D-pad focus ring on every control.
+- **45 real colour themes** generated with Material Color Utilities (`tools/gen-palettes.mjs`), each in Dark, Light, Dusk and AMOLED. The first 15 reuse Orion Store's palette seeds (credited in NOTICE.md).
+- **45 animated cursors** (9 shapes x 5 animations) drawn in code with the theme colours; the pointer ripples where OK is pressed.
+- New pages: Bookmarks, Themes, Cursors, Settings, Shields, Developer, Credits, Donate (QR code from `tools/gen_qr.py`).
+- Web-page dialogs (alerts, confirms, prompts, camera/microphone permission) are Material 3 dialogs.
+### Fixed
+- **Ads and trackers were not blocked.** Two causes: (1) uBlock Origin and Wishy Core were never allowed to run in private browsing, and every session is private (reproduced on desktop Firefox: ads leak until the extension is allowed); (2) the extensions were re-installed on every launch, so uBlock started cold each time. They are now installed once (`ensureBuiltIn`) and explicitly allowed, and the first page loads only after the blocker is up.
+- The pointer's link-snapping now attaches to the extension that is actually running.
+- Launcher icon: blue gradient instead of the default green grid; wrong monochrome layer removed; TV banner and Play Store icon rebuilt.
+### Performance and stability
+- **Crash recovery actually recovers.** After a web-process crash or an Android low-memory kill Gecko closes the session, so the old `reload()` did nothing and the page stayed blank. The session is now reopened, and a page that crashes 3 times in a minute sends you home instead of looping.
+- **No automatic full-resolution screenshot on low-RAM TVs** (2 GB or less); it ran when a heavy page like GitHub was at its largest. Previews are still taken when the menu opens or a page is bookmarked. In-memory previews are dropped when Android asks for memory.
+- **Pointer no longer recomposes every frame** and stops animating when idle.
+- **Blocker is lighter:** the three AdGuard lists (not bundled, downloaded and compiled on the TV) are off by default again, as in stock uBlock Origin. Existing installs get the new defaults (SHIELDS_PROFILE 4).
+- **Reduce motion is on by default on weak TVs** (about 2 GB RAM or less), and the page-load indicators are the plain Material ones instead of the always-animating Expressive wavy ones.
+- **Built-in crash reason.** On the next launch a card tells you why the last run ended (Android ran out of memory, browser engine crash, app stopped responding...), read from Android's own exit history (Android 11+).
+- Removed `gfx.webrender.all` (forced WebRender past Mozilla's GPU blocklist).
+- Wishy Core runs in the top frame only (it opened one native port per ad/embed iframe, and the app talked to whichever connected last), snaps the pointer using CSS-pixel coordinates (screen pixels were compared with CSS pixels), only considers links on screen, and its focus outline is no longer lost at `document_start`.
+### Changed
+- Bundled uBlock filter lists refreshed (`tools/update_lists.sh`); translations trimmed to English.
+- Removed AppCompat, RecyclerView and Material Components; dead code and resources deleted.
+### Known limits
+- Written without access to an Android SDK, so it has not been compiled or run on a device by the author of this change. Build it and report any error.
 
-# 4.3.1 - YouTube ad blocking rebuilt
-- YouTube: ad data is now removed on every path it can arrive by: the page's first data (player response and home data), fetch() as JSON and as text, XMLHttpRequest (text and JSON), and JSON.parse. Before, only the first player response and fetch().json() were covered, so m.youtube.com-style XHR answers and text answers still carried ads.
-- YouTube: ads are removed from the data deep inside feed, search, side-bar and masthead answers (not only hidden afterwards), and sections that only held ads are dropped. The ad CSS stays as a second net.
-- YouTube: the "ad blockers are not allowed" message data is removed before it can show, and nothing may record that an ad blocker was found.
-- YouTube: the fallback reacts on the video's own events instead of waiting up to 250 ms, and it never seeks a long video (the old fallback could jump a whole video to its end when YouTube left the ad flag set).
-- Other sites: more ad containers and ad-verification frames hidden (amp-ad, ad-verification and ad-exchange iframes); more Google ad paths blocked (/pagead/ anywhere, /pcs/activeview, GPT scripts).
-- Tests: tools/adblock-test runs the ad script in a simulated browser against YouTube-shaped data (64 checks) and checks the request rules on a plain JVM (52 checks). AdRules no longer depends on android.net.Uri so it can be tested without a device.
+## [v2.2.0]
+### Added
+- Bundled **uBlock Origin (v1.75.0)** as a mandatory privacy layer.
+- Gecko content process and memory tuning preferences for low-RAM TVs.
+- **HTTPS-Only Mode** and **DNS-over-HTTPS** for enhanced security.
+- **Reader View** support with automatic detection and menu integration.
+- New **Spatial Navigation Engine** (Wishy Core extension) for robust D-pad web traversal.
+- **Magnetic Cursor Snapping** to interactive elements in pointer mode.
+- Overscan safety margins (5% inset) and enlarged tap targets for TV usability.
+- Branch-based development for improvement plan phases.
+
+### Changed
+- Removed unused code and resources (dead helper, unused strings, colour and drawable); downsized the 1254 px launcher art to 512 px.
+- Enabled **R8 Full Mode** for better code shrinking.
+- Pruned redundant resource densities to reduce overall package size.
+- Set `debugSymbolLevel = NONE` for release builds.
+
+## [v2.1.0]
+### Added
+- Three product flavors: `arm32`, `arm64`, and `universal`.
+- Support for x86_64 emulators via `wishy.includeX86` flag.
+- Memory optimization tuning for weak TV hardware.
+- Experimental uncompressed packaging option.
+
+## [v2.0.0]
+- Initial release based on GeckoView 155.
+
+## 4.0.0 fixes
+- Pointer could stick near the top or bottom of a page: edge scrolling now reads WebView's live scroll position instead of a cached value.
+- Link snapping now waits until the pointer has been still for 300 ms, ignores answers that arrive after you moved again, and no longer queries the page while you are moving.

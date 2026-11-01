@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -39,6 +40,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import org.wishy.browser.BrowserController
 import org.wishy.browser.Page
@@ -73,9 +75,16 @@ fun MenuSheet(c: BrowserController) {
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     item {
-                        Column(Modifier.padding(bottom = 4.dp)) {
-                            Text("Wishy Browser", style = MaterialTheme.typography.titleLarge, fontFamily = org.wishy.browser.ui.theme.BagelFatOne)
-                            Text("Version ${c.versionName}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(Modifier.padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painterResource(R.drawable.ic_cat_logo), null,
+                                Modifier.size(52.dp).clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                            )
+                            Column(Modifier.padding(start = 14.dp)) {
+                                Text("Wishy Browse", style = MaterialTheme.typography.titleLargeEmphasized)
+                                Text("Version 4.0", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                     item { CurrentPageCard(c) }
@@ -94,36 +103,21 @@ fun MenuSheet(c: BrowserController) {
                     }
                     item { SectionLabel("Browse") }
                     item {
-                        val active = c.downloads.count { it.state == org.wishy.browser.DlState.RUNNING || it.state == org.wishy.browser.DlState.QUEUED }
                         TileRow(
-                            FeatureTile(Sym.Download, "Downloads", if (active > 0) "$active running" else "${c.downloads.size} in the list") { c.openPage(Page.DOWNLOADS) },
                             FeatureTile(Sym.BookmarkFilled, "Bookmarks", "${c.bookmarks.size} saved") { c.openPage(Page.BOOKMARKS) },
+                            FeatureTile(Sym.Download, "Downloads", c.downloadsSummary()) { c.openPage(Page.DOWNLOADS) },
                         )
                     }
                     item {
                         TileRow(
+                            FeatureTile(Sym.ShieldFilled, "Shields", "${c.blockedSession} blocked") { c.openPage(Page.SHIELDS) },
                             FeatureTile(Sym.Notifications, "Notifications", if (c.unreadNotes > 0) "${c.unreadNotes} new" else "All caught up") { c.openPage(Page.NOTIFICATIONS) },
-                            FeatureTile(Sym.ShieldFilled, "Shields", if (Shields.blockerActive) "${c.blockedSession} blocked" else "Check blocker") { c.openPage(Page.SHIELDS) },
                         )
                     }
                     item {
-                        TileRow(
-                            FeatureTile(Sym.ShieldFilled, "Shields", if (Shields.blockerActive) "${c.blockedSession} blocked" else "Check blocker") { c.openPage(Page.SHIELDS) },
-                            if (c.readerable) FeatureTile(Sym.MenuBook, "Reader view", "Clean text") { c.closeAll(); c.openReader() }
-                            else FeatureTile(Sym.Settings, "Settings", "Site, text, home") { c.openPage(Page.SETTINGS) },
-                        )
-                    }
-                    item {
-                        TileRow(
-                            FeatureTile(Sym.ShieldLockFilled, "Privacy", "${c.protectionsOn} of ${c.protectionsTotal} on  \u00B7  ${c.searchEngine.label}") { c.openPage(Page.PRIVACY) },
-                            FeatureTile(Sym.DeleteSweep, "Clear data", "Cookies, cache, history") { c.clearBrowsingData(); c.closeAll() },
-                        )
-                    }
-                    item {
-                        TileRow(
-                            FeatureTile(Sym.Search, "Find in page", "Ctrl+F") { c.openFind() },
-                            FeatureTile(Sym.ContentCopy, "Copy link", "To the clipboard") { c.copyLink() },
-                        )
+                        val settings = FeatureTile(Sym.Settings, "Settings", "Site, text, home") { c.openPage(Page.SETTINGS) }
+                        if (c.readerable) TileRow(FeatureTile(Sym.MenuBook, "Reader view", "Clean text") { c.closeAll(); c.openReader() }, settings)
+                        else TileRow(settings, null)
                     }
                     item { SectionLabel("Make it yours") }
                     item {
@@ -131,9 +125,6 @@ fun MenuSheet(c: BrowserController) {
                             FeatureTile(Sym.Palette, "Themes", paletteName(c.themeId)) { c.openPage(Page.THEMES) },
                             FeatureTile(Sym.AdsClick, "Cursors", c.cursorSpec.name) { c.openPage(Page.CURSORS) },
                         )
-                    }
-                    if (c.readerable) item {
-                        TileRow(FeatureTile(Sym.Settings, "Settings", "Site, text, home") { c.openPage(Page.SETTINGS) }, null)
                     }
                     item { SectionLabel("About") }
                     item { ActionRow(Sym.Code, "Developer", "wishissue") { c.openPage(Page.DEVELOPER) } }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Wishy Browser</string>
+    <string name="app_name">Wishy Browse</string>
     <!-- Blank start: the Compose home screen is shown for about: pages. -->
     <string name="home_url">about:blank</string>
 </resources>

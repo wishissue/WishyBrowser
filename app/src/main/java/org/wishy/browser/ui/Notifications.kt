@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -78,7 +77,7 @@ private fun lookOf(kind: NoteKind): Look {
  */
 @Composable
 fun NotificationHost(c: BrowserController) {
-    val top = if (c.barShown && c.barSide == org.wishy.browser.BarSide.TOP) 96.dp else 28.dp
+    val top = if (!c.atHome && !c.isFullScreen) 96.dp else 28.dp
     Box(
         Modifier.fillMaxSize().safeDrawingPadding().padding(top = top, end = 28.dp, start = 28.dp),
         contentAlignment = Alignment.TopEnd
@@ -94,7 +93,8 @@ private fun NoteCard(c: BrowserController, n: Note) {
     val state = remember { MutableTransitionState(false).apply { targetState = true } }
     val left = remember { Animatable(1f) }
     // Count down, then slide out; once the exit animation has finished, drop the note.
-    LaunchedEffect(n.id) {
+    LaunchedEffect(n.id, n.time) {
+        left.snapTo(1f)
         left.animateTo(0f, tween(n.durationMs.toInt().coerceAtLeast(600), easing = LinearEasing))
         state.targetState = false
     }

@@ -1,61 +1,21 @@
 name: Build APK
-
 on:
   push:
-    branches: [ main, master ]
-    tags: [ 'v*' ]
-  pull_request:
   workflow_dispatch:
-
-permissions:
-  contents: write   # lets a version tag attach the APK to a GitHub Release
-
 jobs:
-  build:
+  apk:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - uses: gradle/actions/setup-gradle@v4
-
-      # Signs releases with your own key when the repository secrets exist; otherwise the debug key is used.
-      - name: Prepare release signing key
-        env:
-          KEYSTORE_BASE64: ${{ secrets.WISHY_KEYSTORE_BASE64 }}
+        with: { distribution: temurin, java-version: 21 }
+      - uses: android-actions/setup-android@v3
+      - name: Build release APK
+        run: ./gradlew assembleRelease --no-daemon
+      - name: Check size (budget 10 MB)
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/wishy.jks"
-            echo "WISHY_KEYSTORE=$RUNNER_TEMP/wishy.jks" >> "$GITHUB_ENV"
-          fi
-
-      - name: Build universal APK
-        env:
-          WISHY_KEYSTORE_PASSWORD: ${{ secrets.WISHY_KEYSTORE_PASSWORD }}
-          WISHY_KEY_ALIAS: ${{ secrets.WISHY_KEY_ALIAS }}
-          WISHY_KEY_PASSWORD: ${{ secrets.WISHY_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon assembleRelease
-
-      - name: Generate Checksums
-        run: |
-          cd dist
-          for f in *.apk; do
-            sha256sum "$f" > "$f.sha256"
-          done
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: WishyBrowser-apk
-          path: dist/*
-          if-no-files-found: error
-
-      - name: Attach APK to release (version tags only)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*
+          f=$(ls dist/*.apk | head -1); s=$(stat -c %s "$f")
+          echo "APK $f = $s bytes ($(echo "scale=2; $s/1048576" | bc) MB)" | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$s" -le 10485760 || { echo "::error::APK is over 10 MB"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with: { name: wishy-release-apk, path: dist/*.apk }

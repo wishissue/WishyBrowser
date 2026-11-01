@@ -199,13 +199,9 @@ fun CursorsPage(c: BrowserController) {
                 Text(shown.name, Modifier.padding(top = 12.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     when {
-                        img == null -> "Plain arrow (no cursor pictures found)"
+                        img == null -> "Default pointer"
                         img.custom -> "Your own picture"
-                        else -> {
-                            val info = c.cursorLib.packInfo.firstOrNull { it.name == img.pack }
-                            if (info != null) "${img.pack} \u00B7 open source (${info.license})"
-                            else "${img.pack} \u00B7 open source"
-                        }
+                        else -> "${img.pack} \u00B7 open source (${c.cursorLib.packInfo.firstOrNull { it.name == img.pack }?.license ?: "see Credits"})"
                     },
                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -244,15 +240,10 @@ fun CursorsPage(c: BrowserController) {
                 items(c.cursorLib.custom.toList(), key = { it.id }) { ci ->
                     CursorTile(Cursors.of(ci), c.cursorId == ci.id, { hover = ci.id }, { c.removeCursor(ci) }) { c.setCursor(ci.id) }
                 }
-                if (c.cursorLib.packed.isNotEmpty()) {
-                    val packs = c.cursorLib.packed.groupBy { it.pack }
-                    packs.forEach { (packName, cursorsInPack) ->
-                        val packObj = c.cursorLib.packInfo.firstOrNull { it.name == packName }
-                        val lic = packObj?.license ?: "open source"
-                        item(span = { GridItemSpan(maxLineSpan) }) { SectionLabel("$packName pack \u00B7 $lic") }
-                        items(cursorsInPack, key = { it.id }) { pi ->
-                            CursorTile(Cursors.of(pi), c.cursorId == pi.id, { hover = pi.id }, null) { c.setCursor(pi.id) }
-                        }
+                for (pack in c.cursorLib.packInfo) {
+                    item(span = { GridItemSpan(maxLineSpan) }, key = "pack_${pack.name}") { SectionLabel("Open source: ${pack.name} (${pack.license})") }
+                    items(c.cursorLib.packed.filter { it.pack == pack.name }, key = { it.id }) { pi ->
+                        CursorTile(Cursors.of(pi), c.cursorId == pi.id, { hover = pi.id }, null) { c.setCursor(pi.id) }
                     }
                 }
             }
@@ -335,33 +326,6 @@ fun SettingsPage(c: BrowserController) {
                     )
                 }
             }
-            item { SectionLabel("Layout") }
-            item {
-                Text(
-                    "Toolbar position", Modifier.padding(start = 8.dp),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            item {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (side in org.wishy.browser.BarSide.entries) {
-                        FilterChip(selected = c.barSide == side, onClick = { c.setBarSide(side) }, label = { Text(side.label) })
-                    }
-                }
-            }
-            item {
-                ActionRow(
-                    Sym.Fullscreen, "Full-screen mode",
-                    "Hides the toolbar and system bars. Drag in from the edge, push the pointer against it, press SEARCH, or hold MENU to bring the toolbar back.",
-                    trailing = { Switch(c.hideBar, null) }
-                ) { c.setHideBar(!c.hideBar) }
-            }
-            item { ActionRow(Sym.Download, "Downloads", "${c.downloads.size} in the list") { c.openPage(Page.DOWNLOADS) } }
-            item { SectionLabel("Privacy and search") }
-            item { ActionRow(Sym.ShieldLockFilled, "Privacy", "${c.protectionsOn} of ${c.protectionsTotal} protections on") { c.openPage(Page.PRIVACY) } }
-            item { ActionRow(Sym.Search, "Search engine", c.searchEngine.label) { c.openPage(Page.PRIVACY) } }
-            item { ActionRow(Sym.Search, "Find in page", "Search the words on this page") { c.openFind() } }
-            item { ActionRow(Sym.DeleteSweep, "Clear browsing data now", "Cookies, cache, history and previews") { c.clearBrowsingData() } }
             item { SectionLabel("Previews and notifications") }
             item {
                 ActionRow(Sym.Image, "Page previews", "Thumbnails of pages you visit (kept in memory; bookmarks keep theirs)", trailing = { Switch(c.thumbsEnabled, null) }) { c.toggleThumbs() }
@@ -380,11 +344,6 @@ fun SettingsPage(c: BrowserController) {
             item {
                 ActionRow(Sym.Animation, "Reduce motion", "Turn animations into instant changes", trailing = { Switch(c.reduceMotion, null) }) { c.setReduceMotion(!c.reduceMotion) }
             }
-            item { SectionLabel("Updates") }
-            item {
-                ActionRow(Sym.TipsAndUpdates, "Tell me about new versions", "Asks GitHub once a day. Nothing is downloaded.", trailing = { Switch(c.updateCheckOn, null) }) { c.setUpdateCheck(!c.updateCheckOn) }
-            }
-            item { ActionRow(Sym.Refresh, "Check for a new version now", "Version ${c.versionName}") { c.checkForUpdate(manual = true) } }
             item { SectionLabel("System") }
             item { ActionRow(Sym.OpenInNew, "Set as default browser", "Open links from other apps in Wishy") { c.openDefaultBrowserSettings() } }
         }
