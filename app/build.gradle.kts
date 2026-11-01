@@ -31,11 +31,17 @@ android {
         val keystorePath = setting("WISHY_KEYSTORE") ?: rootProject.file("wishy.jks").absolutePath
         val ksFile = File(keystorePath)
         if (ksFile.exists()) {
-            create("release") {
-                storeFile = ksFile
-                storePassword = setting("WISHY_KEYSTORE_PASSWORD") ?: "wishisashi13"
-                keyAlias = setting("WISHY_KEY_ALIAS") ?: "wishy"
-                keyPassword = setting("WISHY_KEY_PASSWORD") ?: "wishisashi13"
+            val storePass = setting("WISHY_KEYSTORE_PASSWORD")
+            val keyPass = setting("WISHY_KEY_PASSWORD")
+            // Only define the release config when real credentials are supplied;
+            // otherwise the build falls back to the debug key below.
+            if (storePass != null && keyPass != null) {
+                create("release") {
+                    storeFile = ksFile
+                    storePassword = storePass
+                    keyAlias = setting("WISHY_KEY_ALIAS") ?: "wishy"
+                    keyPassword = keyPass
+                }
             }
         }
     }
