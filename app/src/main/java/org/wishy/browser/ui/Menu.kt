@@ -108,13 +108,6 @@ fun MenuSheet(c: BrowserController) {
                     }
                     item {
                         TileRow(
-                            FeatureTile(Sym.ShieldFilled, "Shields", if (Shields.blockerActive) "${c.blockedSession} blocked" else "Check blocker") { c.openPage(Page.SHIELDS) },
-                            if (c.readerable) FeatureTile(Sym.MenuBook, "Reader view", "Clean text") { c.closeAll(); c.openReader() }
-                            else FeatureTile(Sym.Settings, "Settings", "Site, text, home") { c.openPage(Page.SETTINGS) },
-                        )
-                    }
-                    item {
-                        TileRow(
                             FeatureTile(Sym.ShieldLockFilled, "Privacy", "${c.protectionsOn} of ${c.protectionsTotal} on  \u00B7  ${c.searchEngine.label}") { c.openPage(Page.PRIVACY) },
                             FeatureTile(Sym.DeleteSweep, "Clear data", "Cookies, cache, history") { c.clearBrowsingData(); c.closeAll() },
                         )
@@ -132,8 +125,11 @@ fun MenuSheet(c: BrowserController) {
                             FeatureTile(Sym.AdsClick, "Cursors", c.cursorSpec.name) { c.openPage(Page.CURSORS) },
                         )
                     }
-                    if (c.readerable) item {
-                        TileRow(FeatureTile(Sym.Settings, "Settings", "Site, text, home") { c.openPage(Page.SETTINGS) }, null)
+                    item {
+                        TileRow(
+                            FeatureTile(Sym.Settings, "Settings", "Site, text, home") { c.openPage(Page.SETTINGS) },
+                            if (c.readerable) FeatureTile(Sym.MenuBook, "Reader view", "Clean text") { c.closeAll(); c.openReader() } else null,
+                        )
                     }
                     item { SectionLabel("About") }
                     item { ActionRow(Sym.Code, "Developer", "wishissue") { c.openPage(Page.DEVELOPER) } }

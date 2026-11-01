@@ -91,6 +91,8 @@ class DlItem(
     /** Bumped by every start, pause and cancel: a worker whose number is out of date must stop at once. */
     @Volatile var runId = 0
     @Volatile var call: Call? = null
+    /** Set after a 400/401/403: the next attempt sends no referrer, cookies or privacy headers (signed CDN links can reject them). */
+    @Volatile var lean = false
     /** Held for a whole transfer, so a new worker never starts while the previous one is still unwinding. */
     val lock = Any()
 }
@@ -115,7 +117,7 @@ object DownloadHub {
     private var ready = false
     private var seq = 0L
     private val main = Handler(Looper.getMainLooper())
-    private val pool = Executors.newFixedThreadPool(2) { r ->
+    private val pool = Executors.newFixedThreadPool(4) { r ->
         Thread(r, "wishy-dl").apply { isDaemon = true; priority = Thread.NORM_PRIORITY - 1 }
     }
     private val client: OkHttpClient by lazy {
@@ -211,6 +213,11 @@ object DownloadHub {
     }
 
     fun enqueue(url: String, referer: String?, name: String, mime: String?, size: Long): DlItem {
+        // Tapping a link again while its file is already coming (or paused) must not start a second copy.
+        items.firstOrNull { it.url == url && it.state != DlState.DONE && it.state != DlState.FAILED }?.let {
+            if (it.state == DlState.PAUSED) resume(it)
+            return it
+        }
         val now = System.currentTimeMillis()
         seq = if (now > seq) now else seq + 1
         val d = DlItem(seq, url, referer, cleanName(name), mime?.takeIf { it.isNotBlank() }, now)
@@ -369,14 +376,25 @@ object DownloadHub {
                     throw IOException("The file changed; starting again")
                 }
                 r.code in 500..599 || r.code == 429 -> throw IOException("The server is busy (${r.code})")
+                (r.code == 400 || r.code == 401 || r.code == 403) && !d.lean -> {
+                    // Some CDNs refuse a request that carries a referrer or cookies it did not expect. Try once more bare.
+                    d.lean = true
+                    throw IOException("Refused (${r.code}); trying again with fewer headers")
+                }
                 !r.isSuccessful -> throw Fatal(
                     when (r.code) {
-                        401, 403 -> "Not allowed (${r.code}). The site may want you to sign in first."
-                        404, 410 -> "The file is gone (${r.code})"
-                        else -> "The server answered ${r.code}"
+                        401, 403 -> "Not allowed (${r.code}) by ${r.request.url.host}. The link may have expired or want a sign-in."
+                        404, 410 -> "The file is gone (${r.code}) on ${r.request.url.host}"
+                        else -> "${r.request.url.host} answered ${r.code}"
                     }
                 )
             }
+            // A page where a file should be (expired link, sign-in wall) must not be saved as if it were the file.
+            val ct = r.header("Content-Type")?.substringBefore(';')?.trim()?.lowercase()
+            val htmlOk = d.mime?.startsWith("text/html", ignoreCase = true) == true || d.name.lowercase().let {
+                it.endsWith(".html") || it.endsWith(".htm") || it.endsWith(".xhtml")
+            }
+            if (ct == "text/html" && !htmlOk) throw Fatal("${r.request.url.host} sent a web page instead of the file. The link may have expired or want a sign-in.")
             val append = r.code == 206 && have > 0
             if (!append && have > 0) { part.delete(); have = 0 }
             val body = r.body ?: throw IOException("Empty answer")
@@ -436,7 +454,9 @@ object DownloadHub {
         h["User-Agent"] = Privacy.userAgent(app, p.desktopMode, p.opt(Opt.COMMON_IDENTITY))
         h["Accept"] = "*/*"
         h["Accept-Encoding"] = "identity"        // byte ranges and Content-Length stay honest
-        d.referer?.let { h["Referer"] = it }
+        // Like the cookies, the referrer goes only to the host the page linked to, never on to a redirect target (a CDN).
+        if (d.lean) return h   // second chance after a refusal: just the file request, nothing extra
+        d.referer?.let { if (url.host == d.url.toHttpUrlOrNull()?.host) h["Referer"] = it }
         runCatching { CookieManager.getInstance().getCookie(url.toString()) }.getOrNull()
             ?.takeIf { it.isNotBlank() }?.let { h["Cookie"] = it }
         if (p.opt(Opt.GPC)) { h["Sec-GPC"] = "1"; h["DNT"] = "1" }

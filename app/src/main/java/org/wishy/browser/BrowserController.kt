@@ -835,9 +835,16 @@ class BrowserController(
         runCatching { Uri.parse(u).let { if (it.scheme != null && it.host != null) "${it.scheme}://${it.host}/" else null } }.getOrNull()
 
     /** The page started a download. Ask first (unless that switch is off), then hand it to the download manager. */
+    private var askingDownloadUrl: String? = null
+
     private fun onDownloadRequested(u: String, cd: String?, mime: String?, len: Long) {
         ui.post {
-            if (prompt != null) return@post
+            if (prompt != null) {
+                // The same link tapped again while its own question is open needs nothing. Anything else used to be
+                // dropped without a word; say so instead.
+                if (askingDownloadUrl != u) notify(NoteKind.WARNING, "Download not started", "Close the open dialog, then tap the link again", Sym.Download, 4500L)
+                return@post
+            }
             val scheme = runCatching { Uri.parse(u).scheme?.lowercase() }.getOrNull()
             if (scheme == "blob") {
                 notify(NoteKind.WARNING, "Can't download this yet", "This site builds the file inside the page", Sym.Download, 5200L)
@@ -855,10 +862,11 @@ class BrowserController(
             val go = { startDownload(u, referer, name, mime, len) }
             if (has(Opt.ASK_DOWNLOAD)) {
                 stopCursor()
-                promptCancel = { }
+                askingDownloadUrl = u
+                promptCancel = { askingDownloadUrl = null }
                 val size = if (len > 0) " (${android.text.format.Formatter.formatShortFileSize(activity, len)})" else ""
                 prompt = PromptRequest.Confirm(hostOf(url), "Download $name$size?") { ok ->
-                    prompt = null; promptCancel = null
+                    prompt = null; promptCancel = null; askingDownloadUrl = null
                     if (ok) go()
                 }
             } else go()
@@ -866,10 +874,12 @@ class BrowserController(
     }
 
     private fun startDownload(u: String, referer: String?, name: String, mime: String?, len: Long) {
-        ensureDownloadPermissions {
-            DownloadHub.enqueue(u, referer, name, mime, len)
-            notify(NoteKind.INFO, "Download started", name, Sym.Download, 3200L)
-        }
+        // The transfer needs no permission: Android 10+ saves through MediaStore, and older versions fall back to the app's
+        // folder when storage access is missing (publish() checks again at the end). So start at once and ask afterwards;
+        // waiting for the answer lost the download whenever the permission dialog never called back (TV builds, recreated activity).
+        DownloadHub.enqueue(u, referer, name, mime, len)
+        notify(NoteKind.INFO, "Download started", name, Sym.Download, 3200L)
+        ensureDownloadPermissions { }
     }
 
     /** Android 9 and older need storage permission to write into Downloads; Android 13+ asks once for notifications. */
