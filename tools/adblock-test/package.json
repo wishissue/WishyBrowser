@@ -1,7 +1,7 @@
 {
   "name": "adblock-test",
   "version": "1.0.0",
-  "description": "Tests for Wishy Browser's ad blocking (adblock.js and AdRules.kt)",
+  "description": "Tests for Wishy Browse's ad blocking (adblock.js and AdRules.kt)",
   "scripts": {
     "test": "node run.js"
   },
