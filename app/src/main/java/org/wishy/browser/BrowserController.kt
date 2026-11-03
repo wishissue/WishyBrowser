@@ -172,8 +172,8 @@ class BrowserController(
     private fun has(o: Opt) = o in enabledOpts
     /** For the UI: reading this makes Compose redraw when a switch changes. */
     fun isOn(o: Opt): Boolean { optTick; return o in enabledOpts }
-    val protectionsOn: Int get() { optTick; return Opt.entries.count { it != Opt.LITE && it in enabledOpts } }
-    val protectionsTotal: Int get() = Opt.entries.count { it != Opt.LITE }
+    val protectionsOn: Int get() { optTick; return Opt.entries.count { it.isProtection && it in enabledOpts } }
+    val protectionsTotal: Int get() = Opt.entries.count { it.isProtection }
 
     // ---- update notice and donation reminder (see Updates.kt) ----
     var promo by mutableStateOf<Promo?>(null)
@@ -314,6 +314,7 @@ class BrowserController(
 
     private var docScript: ScriptHandler? = null
     private var adDocScript: ScriptHandler? = null
+    private var wishyDocScript: ScriptHandler? = null
     private val docStartOk: Boolean get() = WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
 
     private val privacyJs: String by lazy { runCatching { activity.assets.open("privacy.js").bufferedReader().use { it.readText() } }.getOrDefault("") }
@@ -369,9 +370,14 @@ class BrowserController(
         s.blockNetworkImage = has(Opt.LITE)
         s.userAgentString = Privacy.userAgent(activity, prefs.desktopMode, has(Opt.COMMON_IDENTITY))
         CookieManager.getInstance().setAcceptThirdPartyCookies(w, !has(Opt.THIRD_PARTY_COOKIES))
+        // Safe Browsing sends hashes of visited sites to Google, so it is an opt-in switch (off by default).
+        if (Build.VERSION.SDK_INT >= 26) s.safeBrowsingEnabled = has(Opt.SAFE_BROWSING)
         runCatching { docScript?.remove() }
         runCatching { adDocScript?.remove() }
-        docScript = null; adDocScript = null
+        runCatching { wishyDocScript?.remove() }
+        docScript = null; adDocScript = null; wishyDocScript = null
+        // The pointer/D-pad helper is registered once for every page instead of being sent three times per page load.
+        if (wishyJs.isNotEmpty() && docStartOk) wishyDocScript = runCatching { WebViewCompat.addDocumentStartJavaScript(w, wishyJs, setOf("*")) }.getOrNull()
         val js = privacyScript()
         if (js.isNotEmpty() && docStartOk) docScript = runCatching { WebViewCompat.addDocumentStartJavaScript(w, js, setOf("*")) }.getOrNull()
         val ads = adScript()
@@ -384,14 +390,14 @@ class BrowserController(
         optTick++
         applyOpts(web)
         val later = o == Opt.FINGERPRINT || o == Opt.REFERRER || o == Opt.COOKIE_BANNERS || o == Opt.COMMON_IDENTITY || o == Opt.LITE ||
-            o == Opt.YOUTUBE_ADS || o == Opt.AD_COSMETIC || o == Opt.WEBRTC || o == Opt.CLEAN_LINKS
+            o == Opt.YOUTUBE_ADS || o == Opt.AD_COSMETIC || o == Opt.WEBRTC || o == Opt.CLEAN_LINKS || o == Opt.SAFE_BROWSING
         notify(if (on) NoteKind.SUCCESS else NoteKind.WARNING, "${o.title}: ${if (on) "on" else "off"}", if (later && !atHome) "Applies to the next page you open" else null, o.icon)
         if (o == Opt.LITE && !atHome) web.reload()
     }
 
     fun turnAllProtectionsOn() {
-        for (o in Opt.entries) if (o != Opt.LITE) { prefs.setOpt(o, true) }
-        enabledOpts = enabledOpts + Opt.entries.filter { it != Opt.LITE }
+        for (o in Opt.entries) if (o.isProtection) { prefs.setOpt(o, true) }
+        enabledOpts = enabledOpts + Opt.entries.filter { it.isProtection }
         optTick++
         applyOpts(web)
         notify(NoteKind.SUCCESS, "Every protection is on", "$protectionsTotal of $protectionsTotal", Sym.ShieldFilled)
@@ -1034,9 +1040,9 @@ class BrowserController(
     private fun inject(view: WebView) {
         val u = view.url ?: return
         if (!u.startsWith("http")) return
-        view.evaluateJavascript(wishyJs, null)
-        // Without document-start scripts the privacy layer runs as early as it can (it guards against running twice).
+        // Without document-start scripts the helper and the privacy layer run as early as they can (each guards against running twice).
         if (!docStartOk) {
+            view.evaluateJavascript(wishyJs, null)
             privacyScript().let { if (it.isNotEmpty()) view.evaluateJavascript(it, null) }
             adScript().let { if (it.isNotEmpty()) view.evaluateJavascript(it, null) }
         }

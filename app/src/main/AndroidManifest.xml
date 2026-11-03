@@ -59,8 +59,10 @@
         android:usesCleartextTraffic="true"
         android:hardwareAccelerated="true">
 
-        <!-- Safe Browsing sends hashes of visited sites to Google. Off. -->
-        <meta-data android:name="android.webkit.WebView.EnableSafeBrowsing" android:value="false" />
+        <!-- Safe Browsing sends hashes of visited sites to Google, so it is an opt-in switch on the Privacy page.
+             It is switched off in code (WebSettings.safeBrowsingEnabled, BrowserController.applyOpts) before any page loads,
+             so it can be turned on at run time. -->
+        <!-- (no EnableSafeBrowsing manifest flag: a manifest opt-out would override the per-WebView setting) -->
         <!-- No metrics upload from the system WebView. -->
         <meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />
 

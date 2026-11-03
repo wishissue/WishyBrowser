@@ -81,10 +81,15 @@ fun ShieldsPage(c: BrowserController) {
             item { InfoRow("Pop-up windows", "Only when you click", true) }
             item { ActionRow(Sym.AdsClick, "Run an ad-block test", "Opens a public page that scores your blocker") { c.open("https://d3ward.github.io/toolz/adblock.html") } }
             item { SectionLabel("Protections (${c.protectionsOn} of ${c.protectionsTotal} on)") }
-            for (o in Opt.entries.filter { it != Opt.LITE }) {
+            for (o in Opt.entries.filter { it.isProtection }) {
                 item(key = o.key) { InfoRow(o.title, if (c.isOn(o)) "On" else "Off", c.isOn(o)) }
             }
-            item { InfoRow("Google Safe Browsing and metrics", "Off", true) }
+            item {
+                InfoRow(
+                    "Google Safe Browsing", if (c.isOn(Opt.SAFE_BROWSING)) "On (sends address hashes to Google)" else "Off (no phishing warnings)", null
+                )
+            }
+            item { InfoRow("WebView usage metrics", "Off", true) }
             item { InfoRow("Encrypted DNS", "Use Android's Private DNS", null) }
             item { ActionRow(Sym.Tune, "Change privacy options", "Search engine and every switch") { c.openPage(Page.PRIVACY) } }
         }

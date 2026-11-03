@@ -52,3 +52,6 @@
 - YouTube: the fallback reacts on the video's own events instead of waiting up to 250 ms, and it never seeks a long video (the old fallback could jump a whole video to its end when YouTube left the ad flag set).
 - Other sites: more ad containers and ad-verification frames hidden (amp-ad, ad-verification and ad-exchange iframes); more Google ad paths blocked (/pagead/ anywhere, /pcs/activeview, GPT scripts).
 - Tests: tools/adblock-test runs the ad script in a simulated browser against YouTube-shaped data (64 checks) and checks the request rules on a plain JVM (52 checks). AdRules no longer depends on android.net.Uri so it can be tested without a device.
+- Safe Browsing is now an opt-in switch (Privacy page, off by default; it sends address hashes to Google). "Turn every protection on" never enables it.
+- The pointer/D-pad helper script is registered once as a document-start script instead of being sent three times per page.
+- The YouTube ad skipper does much less work on pages with no player (home, search) and checks the costly pop-up selector about once a second.

@@ -128,7 +128,11 @@ enum class Opt(val key: String, val group: String, val title: String, val desc: 
     FORMS("forms", "Device", "Don't save passwords or forms", "Nothing you type into a page is remembered"),
     ASK_DOWNLOAD("ask_download", "Device", "Ask before downloading", "A page cannot put a file on your device without your OK"),
     WIPE_EXIT("wipe_exit", "Device", "Wipe data at exit", "Cookies, cache, history and the download list are erased when the app closes and starts"),
+    SAFE_BROWSING("safe_browsing", "Connection", "Warn about dangerous sites", "Google Safe Browsing: warns about phishing and malware, but sends short hashes of the addresses you visit to Google. Off by default", default = false),
     LITE("lite", "Speed", "Lite mode (no images)", "Loads pages much faster on weak TVs; off by default", default = false);
+
+    /** Counted in "N of M protections" and turned on by "turn every protection on". Options that trade privacy or speed are not. */
+    val isProtection: Boolean get() = this != LITE && this != SAFE_BROWSING
 
     val icon: ImageVector
         get() = when (this) {
@@ -150,6 +154,7 @@ enum class Opt(val key: String, val group: String, val title: String, val desc: 
             FORMS -> Sym.Key
             ASK_DOWNLOAD -> Sym.Download
             WIPE_EXIT -> Sym.DeleteSweep
+            SAFE_BROWSING -> Sym.Warning
             LITE -> Sym.Speed
         }
 }

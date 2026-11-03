@@ -221,16 +221,22 @@
     //    "ad blockers are not allowed" pop-up (then let the video carry on).
     var SKIP = ".ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button-container button, .ytp-ad-overlay-close-button";
     var st = { ad: false, muted: false, rate: 1 };
+    var n = 0;
     var tick = function () {
       try {
         if (document.hidden) return;
+        n++;
         var p = document.getElementById("movie_player") || document.querySelector(".html5-video-player");
+        // No player on the page (home feed, search): nothing to skip, so only look again about once a second.
+        if (!p && (n & 3) !== 0) return;
         var v = (p && (p.querySelector("video.html5-main-video") || p.querySelector("video"))) || document.querySelector("video");
 
-        var btn = document.querySelector(SKIP);
+        var btn = (p && (p.classList.contains("ad-showing") || p.classList.contains("ad-interrupting"))) || (n & 3) === 0 ? document.querySelector(SKIP) : null;
         if (btn) btn.click();
 
-        var nag = document.querySelector("ytd-enforcement-message-view-model, tp-yt-paper-dialog:has(ytd-enforcement-message-view-model)");
+        // The plain query is cheap and runs every time; the one with :has is costly, so it runs about once a second.
+        var nag = document.querySelector("ytd-enforcement-message-view-model") ||
+          ((n & 3) === 0 ? document.querySelector("tp-yt-paper-dialog:has(ytd-enforcement-message-view-model)") : null);
         if (nag) {
           var dlg = nag.closest ? (nag.closest("tp-yt-paper-dialog") || nag) : nag;
           dlg.remove();
